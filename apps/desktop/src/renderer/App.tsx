@@ -24,30 +24,6 @@ export interface AppState {
   fileCount: number;
 }
 
-const MOCK_NODES: UIMockNode[] = [
-  {
-    id: 'node-1',
-    title: 'Architecture Overview',
-    type: 'semantic',
-    summary: 'High-level architecture: Electron main process, React renderer, split-pane layout with resizable panels. IPC-based communication between main and renderer.',
-    fileCount: 3,
-  },
-  {
-    id: 'node-2',
-    title: 'Canvas Core Engine',
-    type: 'text',
-    summary: 'Canvas2D rendering engine ported from InfiniteCanvasSimple. Supports pan, zoom, drag, connection drawing, and Obsidian .canvas format.',
-    fileCount: 5,
-  },
-  {
-    id: 'node-3',
-    title: 'README.md',
-    type: 'file',
-    summary: 'Project documentation with setup instructions, architecture overview, and development phases.',
-    fileCount: 1,
-  },
-];
-
 export function App() {
   const [state, setState] = useState<AppState>({
     leftRatio: 0.6,
@@ -88,15 +64,10 @@ export function App() {
   }, []);
 
   const handleSelectNode = useCallback((nodeId: string | null) => {
-    if (!nodeId) {
-      setState(s => ({ ...s, selectedNodeId: null, rightMode: 'empty', source: undefined }));
-      return;
-    }
-    const node = MOCK_NODES.find(n => n.id === nodeId);
     setState(s => ({
       ...s,
       selectedNodeId: nodeId,
-      rightMode: 'content',
+      rightMode: nodeId ? 'content' : 'empty',
       source: undefined,
     }));
   }, []);
@@ -158,10 +129,6 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSelectNode]);
 
-  const selectedNode = state.selectedNodeId
-    ? MOCK_NODES.find(n => n.id === state.selectedNodeId) ?? null
-    : null;
-
   return (
     <div className="app-shell">
       <Toolbar
@@ -171,17 +138,13 @@ export function App() {
       />
       <div className="app-main">
         <div className="left-pane" style={{ flex: `0 0 ${state.leftRatio * 100}%` }}>
-          <LeftPane
-            nodes={MOCK_NODES}
-            selectedNodeId={state.selectedNodeId}
-            onSelectNode={handleSelectNode}
-          />
+          <LeftPane onSelectNode={handleSelectNode} />
         </div>
         <Splitter ratio={state.leftRatio} onRatioChange={handleSetRatio} onDragEnd={handleDragEnd} />
         <div className="right-pane-shell" style={{ flex: 1 }}>
           <RightPane
             mode={state.rightMode}
-            node={selectedNode}
+            nodeId={state.selectedNodeId}
             source={state.source}
             onSetMode={handleSetRightMode}
             onOpenSource={handleOpenSource}

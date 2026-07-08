@@ -1,7 +1,7 @@
 // @infinity-canvas/session
-// Session state (UI state, workspace path, cache metadata).
+// Session state (UI state, workspace path, semantic map, cache).
 // Persists to .infinity-canvas/ directory.
 
-export const PACKAGE_NAME = '@infinity-canvas/session';
-
-// Will be implemented in Phase 3.4 (Session state) + Phase 8 (cache)
+export { SessionStore } from './SessionStore';
+export { createDefaultSession } from './types';
+export type { Session } from './types';

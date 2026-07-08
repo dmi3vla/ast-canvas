@@ -157,7 +157,13 @@ ipcMain.handle('workspace:getLast', async () => {
     if (!existsSync(configPath)) return null;
     const content = await readFile(configPath, 'utf-8');
     const data = JSON.parse(content);
-    return data.path || null;
+    const path = data.path;
+    // Verify the workspace still exists on disk
+    if (path && existsSync(path)) {
+      lastWorkspacePath = path;
+      return path;
+    }
+    return null;
   } catch {
     return null;
   }

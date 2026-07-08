@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-09  
-> Текущая фаза: **2 — Electron Scaffold + Split Shell** (2.1–2.3 ✅, 2.4 ⏳)
+> Текущая фаза: **3 — Unified Data Model** ✅
 
 ---
 
@@ -35,26 +35,57 @@
 
 ---
 
-## Следующая фаза: 2 — Electron Scaffold + Split Shell 🔄
+## Следующая фаза: 3 — Unified Data Model ✅
+
+| Этап | Артефакт | Статус |
+|------|----------|:------:|
+| 3.0 | Residual: getLastWorkspace exists check | ✅ |
+| 3.1 | `packages/schema/src/canvas.ts` — Zod + golden test | ✅ |
+| 3.2 | `packages/schema/src/codemap.ts` — langgraph.codemap parse | ✅ |
+| 3.3 | `packages/schema/src/dep-graph.ts` — pure graph + egoNetwork | ✅ |
+| 3.4 | `packages/session/` — SessionStore + .infinity-canvas/ cache | ✅ |
+| 3.5 | Thin wire: canvas-core re-exports + STATUS | ✅ |
+
+### DoD Фазы 3:
+- [x] `pnpm typecheck` — 8/8 зелёные
+- [x] `pnpm test` — 61 тест (schema 31, canvas-core 16, ast-graph 7, session 7)
+- [x] `cremniy_canvas.canvas` parse OK (golden test)
+- [x] `langgraph.codemap` parse OK (6 traces, loc fields optional)
+- [x] DepGraph egoNetwork depth tests on fixture A→B→C
+- [x] Session save→load preserves map node ids + ui state
+- [x] Schema = single source of truth for canvas/codemap/dep-graph types
+- [x] `docs/STATUS.md` → Phase 3 ✅, next Phase 4
+
+---
+
+## Следующая фаза: 4 — LLM Semantic Map
 
 Ближайшие этапы:
+- 4.1 — Context packer (`packages/semantic`)
+- 4.2 — Mock LLM provider
+- 4.3 — Semantic map generation pipeline
+- 4.4 — Wire to App: open workspace → LLM → canvas
 - 2.1 — Repo skeleton (pnpm monorepo, electron-vite) ✅
 - 2.2 — Main + preload (BrowserWindow, Open Folder, secure IPC) ✅
 - 2.3 — AppShell split LEFT|RIGHT (критический UX-этап) ✅
-- 2.4 — Port canvas → LEFT + indexer ⏳
+- 2.4 — Port canvas → LEFT (CanvasState, renderer, input, React wrapper) ✅
+- 2.5 — WorkspaceIndexer (walk + ignore rules) ✅
 
-### DoD Фазы 2 (2.1–2.3):
+### DoD Фазы 2:
 - [x] pnpm monorepo, 8 packages, все проходят `pnpm typecheck`
 - [x] `pnpm dev` поднимает Electron окно с React renderer
 - [x] Toolbar: Open Folder → workspace path + file count
-- [x] Split LEFT|RIGHT с resizable splitter (drag, persist ratio)
-- [x] LEFT: список mock-узлов (3 шт.), click → select/deselect
+- [x] Split LEFT|RIGHT с resizable splitter (drag, persist ratio на mouseup)
+- [x] LEFT: Canvas2D canvas с 5 demo-узлами + рёбрами, pan/zoom/drag/click-select
 - [x] RIGHT: 4 режима (empty, content, codemap, source), переключение кнопками
 - [x] Mock content: summary, meta, codemap deps/derives/locations, source viewer
-- [x] Keyboard: Esc → clear selection → rightMode=empty
-- [x] Splitter drag resize + persist leftRatio в config
+- [x] Keyboard: Esc → clear selection, Delete → remove node
+- [x] Splitter drag resize + persist на mouseup
 - [x] CSP strict в index.html
-- [x] contextIsolation preload с typed API
+- [x] contextIsolation preload с typed API + path guards (isPathInWorkspace)
+- [x] Тесты: canvas-core 16/16, ast-graph 7/7 ✅
+- [x] Roundtrip serialize/deserialize Obsidian .canvas формат
+- [x] WorkspaceIndexer: walk + ignore (node_modules, .git, dist, binary)
 
 ---
 

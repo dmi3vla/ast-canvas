@@ -1,10 +1,9 @@
 import React from 'react';
 import type { RightMode } from '@infinity-canvas/detail-pane';
-import type { UIMockNode } from '../App';
 
 interface RightPaneProps {
   mode: RightMode;
-  node: UIMockNode | null;
+  nodeId: string | null;
   source?: { path: string; line: number };
   onSetMode: (mode: RightMode) => void;
   onOpenSource: (path: string, line: number) => void;
@@ -55,9 +54,9 @@ ipcMain.handle('dialog:openWorkspace', async () => {
   return result.canceled ? null : result.filePaths[0];
 });`;
 
-export function RightPane({ mode, node, source, onSetMode, onOpenSource }: RightPaneProps) {
+export function RightPane({ mode, nodeId, source, onSetMode, onOpenSource }: RightPaneProps) {
   // Empty state
-  if (mode === 'empty' || !node) {
+  if (mode === 'empty' || !nodeId) {
     return (
       <div className="right-pane">
         <div className="right-pane__empty">
@@ -75,7 +74,7 @@ export function RightPane({ mode, node, source, onSetMode, onOpenSource }: Right
     <div className="right-pane">
       {/* Header */}
       <div className="right-pane__header">
-        <div className="right-pane__title">{node.title}</div>
+        <div className="right-pane__title">Node: {nodeId}</div>
         <div className="right-pane__actions">
           <button
             onClick={() => onSetMode('content')}
@@ -101,14 +100,18 @@ export function RightPane({ mode, node, source, onSetMode, onOpenSource }: Right
       {/* Content mode */}
       {mode === 'content' && (
         <div className="right-pane__content">
-          <p className="right-pane__summary">{node.summary}</p>
+          <p className="right-pane__summary">
+            Canvas node <strong>{nodeId}</strong> is selected.
+            Click <em>Codemap</em> to view dependencies and traces,
+            or <em>Source</em> to jump to the source file.
+          </p>
           <div className="right-pane__meta">
             <div className="right-pane__meta-item">
-              <span className="right-pane__meta-value">{node.fileCount ?? '—'}</span>
-              <span className="right-pane__meta-label">Files</span>
+              <span className="right-pane__meta-value">1</span>
+              <span className="right-pane__meta-label">Node</span>
             </div>
             <div className="right-pane__meta-item">
-              <span className="right-pane__meta-value">{node.type}</span>
+              <span className="right-pane__meta-value">text</span>
               <span className="right-pane__meta-label">Type</span>
             </div>
           </div>

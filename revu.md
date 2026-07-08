@@ -1,297 +1,346 @@
 
-## User
-
-ревью  проекта второй фазы и отчета агента в обновленном session.txt 
+задачи под 3ю фазу исходя из сделанного
 
 ## Tools
 
-- Read: /home/resu/Documents/dev/ast-canvas/session.txt
-- Execute: find /home/resu/Documents/dev/ast-canvas -maxdepth 5 \( -path '*/node_modules/*' -o -path '*/alex-c.*/*' -o -path '*/luisfernando.*/*' -o -path '*/source/*' -o -path '*/.git/*' \) -prune -o -type f -print 2>/dev/null | sort; echo '---'; ls -la /home/resu/Documents/dev/ast-canvas/; ls -la /home/resu/Documents/dev/ast-canvas/docs/ 2>/dev/null; ls -la /home/resu/Documents/dev/ast-canvas/apps 2>/dev/null; ls -la /home/resu/Documents/dev/ast-canvas/packages 2>/dev/null; ls -la /home/resu/Documents/dev/infinity-canvas 2>/dev/null; find /home/resu/Documents/dev -maxdepth 2 -name 'package.json' 2>/dev/null | head -30 (Locate Phase 2 project structure)
-
-## Assistant
-
-Проверяю код Фазы 2: shell, IPC, пакеты, errata и DoD.
-
-## Tools
-
-- Read: /home/resu/Documents/dev/ast-canvas/docs/STATUS.md
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/main/index.ts
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/preload/index.ts
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/renderer/App.tsx
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/renderer/components/LeftPane.tsx
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/renderer/components/RightPane.tsx
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/renderer/components/Splitter.tsx
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/renderer/components/Toolbar.tsx
-- Read: /home/resu/Documents/dev/ast-canvas/package.json
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/package.json
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/renderer/index.html
-- Read: /home/resu/Documents/dev/ast-canvas/packages/canvas-core/src/index.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/detail-pane/src/index.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/ipc/src/index.ts
 - Read: /home/resu/Documents/dev/ast-canvas/packages/schema/src/index.ts
-- Search: loadContent|groqApiKey|ADR-5|4462|WebGL|deobfuscated
-- Execute: cd /home/resu/Documents/dev/ast-canvas && export PATH="/home/resu/.nvm/versions/node/v22.23.1/bin:$PATH" && pnpm typecheck 2>&1; echo EXIT:$?; ls packages/*/package.json apps/desktop/package.json; cat pnpm-workspace.yaml; head -40 README.md; # check workspace deps used by desktop
-grep -r "workspace:\|@infinity-canvas" apps/desktop packages --include='package.json' 2>/dev/null
-# security: path traversal risk
-# missing styles?
-ls apps/desktop/src/renderer/styles 2>/dev/null; wc -l apps/desktop/src/renderer/styles/global.css 2>/dev/null
-# git status
-git -C /home/resu/Documents/dev/ast-canvas status -sb 2>/dev/null | head -40
- (Typecheck, workspace deps, errata verification)
-- Read: /home/resu/Documents/dev/ast-canvas/docs/research/04-gap-matrix.md (161-231)
-- Read: /home/resu/Documents/dev/ast-canvas/packages/canvas-core/package.json
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/electron.vite.config.ts
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/renderer/main.tsx
-- Search: from '@infinity-canvas|import.*electronAPI|workspace:
-- Execute: # ADR-5 table end of 04; 01 protocol section; listFiles depth issue
-sed -n '220,240p' /home/resu/Documents/dev/ast-canvas/docs/research/04-gap-matrix.md
-# check if fixtures in workspace accidentally
-cat /home/resu/Documents/dev/ast-canvas/fixtures/mini-project/package.json
-# git commits?
-git -C /home/resu/Documents/dev/ast-canvas log --oneline -10 2>/dev/null
-# uncommitted files count
-git -C /home/resu/Documents/dev/ast-canvas status --short 2>/dev/null | wc -l
- (Check ADR residual and git state)
+- Read: /home/resu/Documents/dev/ast-canvas/packages/session/src/index.ts
+- Read: /home/resu/Documents/dev/ast-canvas/packages/canvas-core/src/types.ts
+- Read: /home/resu/Documents/dev/ast-canvas/AGENT_PLAN.md (251-330)
+- Read: /home/resu/Documents/dev/ast-canvas/docs/STATUS.md (1-70)
 
 ## Assistant
 
-# Ревью: Фаза 2 + `session.txt`
+# Фаза 3 — задачи (из текущего состояния)
 
-## Вердикт
+## База «как есть»
 
-| | |
-|--|--|
-| **Фаза 2 (2.1–2.3)** | **Accepted with notes** — skeleton + split shell рабочие |
-| **2.4 / 2.5** | **Не начаты** (ожидаемо; агент корректно остановился) |
-| **Errata Фазы 1** | **~85%** — body docs ок, footer/STATUS с residual |
-| **Качество кода** | **B** — чистый scaffold, слабая связка packages↔app |
-| **typecheck** | ✅ `pnpm typecheck` green (перепроверено) |
-| **Vendor** | Не тронут ✅ |
+| Есть | Нет / stub |
+|------|------------|
+| `canvas-core`: `ICNode`/`ICEdge`/`CanvasDocument` (TS interfaces, **без** Zod) | `packages/schema` — placeholder |
+| serialize/load Obsidian-like JSON + 16 tests | `semantic?` / `graph?` на узле |
+| `ast-graph`: `FileMeta`, `indexWorkspace` | `DepGraph` model |
+| App: `rightMode`, `selectedNodeId`, `leftRatio` (локальный React state) | `packages/session` |
+| research: `02-codemap-schema.md`, `langgraph.codemap` | parse/validate codemap package |
+| fixtures/mini-project | session cache `.infinity-canvas/` |
 
-**Итог:** handoff в **2.4 (port canvas-core)** уместен после мелких fix’ов. Не «фаза 2 целиком» — только **2.1–2.3**.
+**Опциональный pre-work (не блокирует 3.1, желателен до 3.4 wire):**  
+`lastWorkspacePath` on getLast · wire `countFiles` · commit 2.4/2.5.
+
+**Не в фазе 3:** LLM map, AST imports resolve, monaco, UI chrome semantic nodes.
 
 ---
 
-## Что реально есть
+## Цель фазы 3
+
+Единый **source of truth** типов/валидации + session, чтобы:
+- canvas-core / App / future semantic **не дублировали** модели  
+- `.canvas` / `.codemap` / dep graph **парсились с Zod**  
+- UI state (`rightMode`…) жил в session (хотя бы API + persist)
+
+**DoD фазы 3 (глобальный)**  
+- [ ] `pnpm typecheck` + schema/session/ast-graph tests green  
+- [ ] `cremniy_canvas.canvas` parse OK  
+- [ ] `langgraph.codemap` parse OK  
+- [ ] DepGraph egoNetwork tests  
+- [ ] Session save→reload preserves map id + ui  
+- [ ] canvas-core **импортирует** document types из `@infinity-canvas/schema` (или re-export)  
+- [ ] `docs/STATUS.md` → Phase 3 ✅, next Phase 4  
+
+---
+
+## 3.0 (опционально, 30–45 мин) — residual P2
+
+**Зачем:** session/cache path guards не врут.
 
 ```
-apps/desktop/          electron-vite + React 19 + main/preload/renderer
-packages/*             7 stubs (placeholder exports)
-fixtures/mini-project/ 3 JS-файла
-docs/                  errata + STATUS
-pnpm workspace         install + typecheck + dev
+ТОЛЬКО residual Phase 2 (не schema):
+1) workspace:getLast → lastWorkspacePath = path if exists
+2) Open Folder / auto-load: fileCount = countFiles(root) from @infinity-canvas/ast-graph
+3) commit uncommitted 2.4/2.5 if dirty
+pnpm typecheck && pnpm test
+STATUS: residual notes cleared
 ```
 
-| Этап | DoD AGENT_PLAN | Факт |
-|------|----------------|------|
-| **2.1** monorepo | pnpm, electron-vite, packages, README | ✅ |
-| **2.2** main/preload | Open Folder, IPC, path+count | ✅ partial (см. notes) |
-| **2.3** AppShell split | LEFT\|RIGHT, modes, Esc, ratio | ✅ mock |
-| **2.4** canvas-core port | Canvas2D + .canvas | ⏳ placeholder only |
-| **2.5** WorkspaceIndexer | recursive index | ⏳ нет (shallow listFiles) |
-
-Агент в summary честно пишет «2.1–2.3» и next = 2.4 — **scope не раздут** до canvas port. Плюс.
-
 ---
 
-## `session.txt` (вторая сессия)
+## 3.1 — CanvasDocument schema (Zod) ⭐ старт
 
-**Хорошо**
-- Сначала errata из ревью, потом код — правильный порядок
-- План + research прочитаны
-- `corepack` prompt → `Y` — не завис
-- `pnpm install` / typecheck / `pnpm dev` smoke
-- Финальная таблица DoD + next step
+**Зачем:** schema package вместо дубля `canvas-core/types.ts`.
 
-**Слабо**
-- Снова transcript, не structured report
-- 2.1+2.2+2.3 одним куском (для scaffold ок, но не atomic commits по stage id)
-- Нет ручной проверки UI-сценариев в тексте (только process start)
-- `pkill` после dev — грубо, но для CI-like env приемлемо
-- Git: один `init`, без atomic commits `2_1` / `2_3` (правило плана не соблюдено)
-
----
-
-## Сильные стороны реализации
-
-1. **Split UX заложен правильно**  
-   `rightMode: empty|content|codemap|source`, LEFT не unmount, Esc → empty, mock nodes → content.
-
-2. **Безопасный preload-скелет**  
-   `contextIsolation: true`, `nodeIntegration: false`, CSP в `index.html`, API через `contextBridge`.
-
-3. **Splitter**  
-   clamp 0.3–0.8, drag, persist `leftRatio` через `config:set`.
-
-4. **RIGHT mock**  
-   content / deps in+out / locations → source highlight — хороший **контракт** для 5.x–7.x.
-
-5. **Monorepo layout**  
-   совпадает с AGENT_PLAN; packages названы верно; fixtures есть.
-
-6. **Errata в 01/03/ADR-5 body**  
-   `loadContent`, `groqApiKey`, deobfuscated=webview, ADR-5a/5b.
-
----
-
-## Findings
-
-### P1 — исправить до/в начале 2.4
-
-**1. Packages не подключены к UI (мертвый monorepo)**  
-`desktop` depends on `@infinity-canvas/*`, но **ни одного import** из packages.  
-`RightMode` / state живут в `App.tsx`, дубль `detail-pane`.  
-`packages/ipc` пустой — каналы только в main/preload.
-
-→ 2.4+: хотя бы  
-- `import type { RightMode } from '@infinity-canvas/detail-pane'`  
-- channels/types → `@infinity-canvas/ipc`  
-иначе monorepo декоративный.
-
-**2. `file:read` / `file:write` без sandbox**  
-Любой path с renderer → FS. Нужен allowlist: только `lastWorkspacePath` (+ app userData).  
-Сейчас local-first MVP, но дыра появится сразу при file-nodes.
-
-**3. STATUS inconsistent**
-- Header: «Текущая фаза: **1**» при 2.1–2.3 done  
-- § ADR-5 в списке: всё ещё «ast-grep…» (строка 34)  
-- `04` footer table: `Tree-sitter через ast-grep napi | ✅` — **противоречит** body ADR-5a  
-
-→ Patch 5 минут, иначе следующий агент снова утащит napi.
-
-### P2 — качество / DoD gaps
-
-**4. `listFiles` = один уровень**  
-`fileCount` = entries в корне, не «files in project». Open `fixtures/mini-project` → мало / misleading.  
-Для 2.2 DoD «file count» формально ok; для 2.5 indexer — **не** замена.
-
-**5. `getLastWorkspace` не используется**  
-Сохраняется, на старте не восстанавливается. План 2.2: lastWorkspace — half-done.
-
-**6. Persist ratio thrashing**  
-`onRatioChange` → `setConfig` на **каждый mousemove**.  
-Лучше: drag local state, persist на `mouseup`.
-
-**7. Нет native File menu**  
-Только toolbar button. AGENT_PLAN 2.2: `File→Open Folder`. Не блокер.
-
-**8. `sandbox: false`**  
-Часто нужно для preload path; зафиксировать в ADR/security note или включить sandbox + правильный preload.
-
-**9. Нет тестов**  
-`vitest` в scripts, `pnpm test` пустой/fail на missing tests. Хотя бы 1 unit: clamp ratio / mock state machine.
-
-**10. Nested CSS `right-pane`**  
-App: outer `div.right-pane` + RightPane root `div.right-pane` — риск двойных padding/border. Переименовать shell slot.
-
-### P3 — polish
-
-| Item | Note |
-|------|------|
-| Source mode без `source` | `mode==='source' && source` → пустой body, если mode сменится без path |
-| No back stack in RIGHT | План 7.3; для 2.3 ok |
-| No auto-load last workspace UI | см. P2.5 |
-| Zod soft optional в 02 | errata P2 phase1 — не трогали (ok later) |
-| `ast-graph` в STATUS diagram «via ast-grep» | устарело после ADR-5a |
-| Atomic commits | нет |
-
----
-
-## Errata Фазы 1 — residual checklist
-
-| Item | Status |
-|------|:------:|
-| 01 protocol loadContent/groq | ✅ |
-| 01 LOC ~4.5k / ~5.8k | ✅ (в STATUS) |
-| 03 deobfuscated = webview | ✅ |
-| 03 xyflow not WebGL | ✅ |
-| ADR-5 body deferred | ✅ |
-| ADR-5 status table line 230 | ❌ still napi |
-| STATUS ADR list line 34 | ❌ still napi |
-| STATUS «фаза 1» header | ❌ stale |
-
----
-
-## Соответствие UX (split) — smoke design review
-
-| Сценарий | Ожидание | Код |
-|----------|----------|-----|
-| Start | LEFT list, RIGHT empty | ✅ |
-| Click node | RIGHT content, LEFT stays | ✅ |
-| Codemap button | deps/derives/locations | ✅ mock |
-| Location click | source + highlight line | ✅ mock |
-| Esc | empty | ✅ |
-| Resize | ratio clamp + persist | ✅ (persist noisy) |
-| Open Folder | path + count | ✅ shallow |
-| Canvas2D | — | ⏳ 2.4 |
-
-North Star layout **не нарушен**. LEFT placeholder явно помечен Phase 2.4 — хорошо для anti-confusion.
-
----
-
-## Scores
-
-| Артефакт | Score | Note |
-|----------|:-----:|------|
-| monorepo / tooling | **8.5** | typecheck, electron-vite, scripts |
-| main + preload | **7.5** | solid; path sandbox missing |
-| AppShell 2.3 | **8** | core UX correct |
-| packages/* | **4** | stubs only, unwired |
-| fixtures | **7** | enough for later |
-| errata docs | **7.5** | residual footer |
-| STATUS | **6.5** | phase header / ADR-5 stale |
-| session.txt phase2 | **7** | process ok, not report |
-| **Phase 2.1–2.3 overall** | **7.5/10** | ship-worthy scaffold |
-
----
-
-## Рекомендации (порядок)
-
-### Сейчас (errata residual + hygiene, ~30 мин)
-
-1. STATUS: phase = **2**, ADR-5 = file-level first.  
-2. `04` ADR table: `File-level first; ast-grep Phase 6+`.  
-3. Debounce/persist ratio on mouseup only.  
-4. Wire `RightMode` from `@infinity-canvas/detail-pane` (1 import).  
-5. Path guard for `file:read`/`write` relative to workspace.
-
-### Затем **только 2.4** (не 3.x)
-
+**Файлы**
 ```
-Этап 2.4 only.
-Port InfiniteCanvasSimple → packages/canvas-core (TS):
-CanvasState, serialize/deserialize Obsidian .canvas,
-pan/zoom/drag, click → onSelect(nodeId).
-Mount in LeftPane; keep RIGHT contract from App.tsx.
-Roundtrip test: fixtures or cremniy_canvas.canvas subset.
-Vendor read-only. No ast-grep. Update STATUS.
+packages/schema/
+  src/
+    canvas.ts      # Zod + types
+    index.ts
+  tests/
+    canvas.test.ts
 ```
 
-### Не делать в 2.4
+**Модель (совместить с canvas-core + AGENT_PLAN)**
+```ts
+// extensions поверх Obsidian
+ICNode.semantic?: { kind?: string; summary?: string; traceIds?: string[]; fileAnchors?: string[] }
+ICNode.graph?: { path?: string; symbol?: string; role?: 'module'|'fn'|'class' }
+ICEdge.kind?: 'semantic'|'import'|'call'|'inherit'|'derives'
+// runtime isSelected НЕ в schema document (strip on serialize)
+```
 
-- LLM / semantic map (фаза 4)  
-- full DepGraph / ast-grep  
-- monaco  
-- zustand rewrite всего app (можно позже session package)
+**Промт агенту**
+```
+Этап 3.1 ONLY. packages/schema.
+
+1) Zod CanvasDocument / ICNode / ICEdge (Obsidian-compatible):
+   - nodes: id,type,x,y,width,height,color?,text?,file?
+   - type: text|file|semantic|group (и unknown type → strip or passthrough text?)
+   - edges: id,fromNode,toNode,fromSide?,toSide?,label?,kind?
+   - extensions: semantic?, graph? optional
+2) parseCanvas(json|unknown), safeParse, migrateLegacy() (noop ok)
+3) stripRuntime() — убрать isSelected при export
+4) Tests:
+   a) load ../../cremniy_canvas.canvas (or copy to fixtures/) — parse success, nodes.length>0
+   b) roundtrip with semantic+kind extensions
+   c) invalid node (missing id) → error
+5) package.json: dependency zod
+6) canvas-core: types re-export from @infinity-canvas/schema OR adapt CanvasState to use schema types
+   (prefer: schema owns types; canvas-core imports Serialized* + parse helpers)
+7) НЕ делать codemap/session/LLM.
+
+DoD: pnpm --filter @infinity-canvas/schema test; typecheck all; STATUS 3.1 ✅
+```
+
+**DoD 3.1**
+- [ ] Zod schemas + exported types  
+- [ ] `cremniy_canvas.canvas` golden parse  
+- [ ] extension roundtrip  
+- [ ] canvas-core typecheck against schema  
 
 ---
 
-## Сравнение с заявленным DoD агента
+## 3.2 — Codemap schema
 
-| Claim | Reality |
-|-------|---------|
-| pnpm install 172 pkgs | plausible (lock present) |
-| typecheck 8 projects | ✅ verified |
-| pnpm dev starts | claimed; out/ built present |
-| Split + 4 modes + Esc | ✅ code review |
-| CSP + contextIsolation | ✅ |
-| Phase 2 complete | **No** — 2.4/2.5 open; agent said so |
-| packages ready | **shell only** |
+**Зачем:** RIGHT codemap mode (фаза 7/8) + import `langgraph.codemap`.
 
-Заявленное **2.1–2.3 DoD в целом честное**; завышение только если читать как «вся фаза 2».
+**Опора:** `docs/research/02-codemap-schema.md` + errata (optional fields).
+
+**Файлы**
+```
+packages/schema/src/codemap.ts
+packages/schema/tests/codemap.test.ts
+```
+
+**Промт**
+```
+Этап 3.2 ONLY.
+
+1) Zod Codemap / Trace / Location из langgraph.codemap:
+   - Location: id, path, lineNumber required;
+     lineContent, title, description OPTIONAL (LLM-friendly)
+   - Trace: id, title, description, locations.min(1);
+     traceTextDiagram?, traceGuide? optional
+   - Root: schemaVersion, id, stableId, metadata, title, traces;
+     description?, mermaidDiagram? optional
+2) parseCodemap / safeParse
+3) helpers (pure):
+   - listTraces(codemap)
+   - flattenLocations(codemap)
+   - tracesToContentSummary(trace) for RIGHT panel
+4) Golden: parse repo root langgraph.codemap → traces.length === 6
+5) Export from schema/index.ts
+6) НЕ UI, НЕ LLM.
+
+DoD: golden test green; STATUS 3.2 ✅
+```
+
+**DoD 3.2**
+- [ ] parse real `langgraph.codemap`  
+- [ ] optional location fields work  
+- [ ] helpers unit-tested  
 
 ---
 
-## Одной строкой
+## 3.3 — DepGraph model (pure)
 
-Фаза **2.1–2.3 сделана правильно по UX (split + mock detail)** и tooling, monorepo пока **каркас без wiring**, errata **почти** закрыта, security FS и shallow `listFiles` — долги; **принимать и идти в 2.4 canvas port**, не в LLM/AST.
+**Зачем:** фаза 6 build graph / 7 ego — сначала типы + ops.
+
+**Файлы**
+```
+packages/schema/src/dep-graph.ts   # или packages/ast-graph/src/dep-graph.ts
+packages/schema/tests/dep-graph.test.ts
+# предпочтение: types+pure helpers в schema; build later in ast-graph
+```
+
+**API**
+```ts
+DepNode { id, path, name?, kind?: 'file'|'module'|'external' }
+DepEdge { id?, from, to, kind: 'import'|'call'|'type'|'export', loc? }
+DepGraph { nodes: Map|Record, edges: DepEdge[] }
+
+incoming(g, id), outgoing(g, id)
+egoNetwork(g, centerId, depth)  // deps in + derives out
+// optional: topologicalLayers if DAG
+```
+
+**Промт**
+```
+Этап 3.3 ONLY. Pure data model, no FS/AST parse.
+
+1) DepGraph types + pure helpers in packages/schema (or ast-graph if you justify)
+2) Fixture graph A→B→C + external X
+3) Tests: incoming/outgoing/ego depth 1 and 2
+4) Re-export. No WorkspaceIndexer changes except export type if needed.
+5) НЕ resolve imports from real files (Phase 6).
+
+DoD: tests green; STATUS 3.3 ✅
+```
+
+**DoD 3.3**
+- [ ] egoNetwork(depth) correct on fixture  
+- [ ] no native/ast-grep  
+
+---
+
+## 3.4 — Session state + cache skeleton
+
+**Зачем:** связать workspace + semanticMap + ui для фазы 4.
+
+**Файлы**
+```
+packages/session/src/
+  types.ts
+  SessionStore.ts   # class or createSessionStore()
+  cache.ts          # read/write under workspace/.infinity-canvas/
+  index.ts
+packages/session/tests/session.test.ts
+```
+
+**Модель**
+```ts
+Session {
+  workspaceRoot: string | null
+  semanticMap: CanvasDocument | null
+  codemaps: Record<nodeId, Codemap>  // Map serializes poorly — use Record
+  depGraph: DepGraph | null
+  fileIndex?: FileMeta[] | null      // optional, from indexer
+  cacheKey: string | null            // hash later; string ok
+  ui: {
+    selectedNodeId: string | null
+    rightMode: 'empty'|'content'|'codemap'|'source'
+    leftRatio: number
+    source?: { path: string; line: number }
+  }
+}
+```
+
+**Промт**
+```
+Этап 3.4 ONLY.
+
+1) Session types using @infinity-canvas/schema (+ FileMeta from ast-graph optional)
+2) SessionStore:
+   - createDefault(), patch(partial), get()
+   - saveToWorkspace(root) → .infinity-canvas/session.json (and/or semantic-map.canvas)
+   - loadFromWorkspace(root)
+3) cacheKey: simple join of fileCount+mtime max for now OR placeholder ""
+4) Tests with temp dir (fs): save→load preserves semanticMap node ids + ui.rightMode
+5) Optional light wire in App: leftRatio + rightMode from store (NOT required if risky)
+   Minimum: package API only + test.
+6) IPC session:get/patch — optional; if skip, document as Phase 4.
+
+НЕ build semantic map via LLM.
+
+DoD: session test green; STATUS 3.4 ✅ + Phase 3 DoD
+```
+
+**DoD 3.4**
+- [ ] persist/load session  
+- [ ] ui includes rightMode/leftRatio  
+- [ ] depends on schema 3.1–3.3  
+
+---
+
+## 3.5 (рекомендуется) — thin integration glue
+
+Не «новая фаза», а **закрытие** 3.x в app (1 PR):
+
+```
+После 3.1–3.4:
+1) desktop Open Folder: SessionStore.loadFromWorkspace / create
+2) CanvasView: if session.semanticMap → loadData(JSON) else demo seed
+3) onSelect: session.ui.selectedNodeId + rightMode=content;
+   RightPane shows node from semanticMap/demo by id (text/summary)
+4) leftRatio persist via session.ui (can keep config:set dual-write once)
+pnpm typecheck; manual smoke note in STATUS
+```
+
+Без 3.5 фаза 3 «висячие packages» — как indexer до wire.
+
+---
+
+## Порядок и параллелизм
+
+```
+[3.0 residual] optional
+    ↓
+  3.1 Canvas Zod     ← START
+    ↓
+  3.2 Codemap    ‖   3.3 DepGraph   (после 3.1 можно параллельно)
+    ↓
+  3.4 Session (нужны 3.1 + желательно 3.2/3.3)
+    ↓
+  3.5 thin App wire (optional but recommended)
+    ↓
+  Phase 4 LLM semantic map
+```
+
+| ID | Зависит от | Оценка |
+|----|------------|--------|
+| 3.1 | — | 0.5–1 d |
+| 3.2 | 3.1 exports | 0.5 d |
+| 3.3 | 3.1 or alone | 0.5 d |
+| 3.4 | 3.1 + (3.2, 3.3) | 0.5–1 d |
+| 3.5 | 3.4 | 0.5 d |
+
+---
+
+## Master prompt (на старт 3.1)
+
+```
+Проект: ast-canvas monorepo.
+Сделано: Phase 2 canvas-core (Canvas2D LEFT) + WorkspaceIndexer package + split UI.
+schema/session = stubs.
+
+Layout locked: LEFT canvas always | RIGHT empty|content|codemap|source.
+
+Сейчас ТОЛЬКО этап 3.1 (Zod CanvasDocument).
+Промт — AGENT tasks 3.1.
+Опора: packages/canvas-core/src/types.ts, cremniy_canvas.canvas, docs/research/02.
+Vendor RO. No LLM, no ast-grep, no DepGraph builder from files.
+После этапа: pnpm typecheck + schema tests; docs/STATUS.md.
+Append session notes; don't wipe history.
+```
+
+---
+
+## Анти-съезд (фаза 3)
+
+1. Сначала **Zod + tests**, потом UI wire.  
+2. Не переносить всю логику canvas в schema — только document/types/validate.  
+3. Codemap location fields **optional** (errata).  
+4. DepGraph = pure graph; **не** parse imports (это 6.x).  
+5. Session cache local only; no cloud.  
+6. Один этап = один PR/commit message `feat(3.1): …`.  
+
+---
+
+## После фазы 3 → Phase 4 (preview)
+
+Не делать сейчас, только горизонт:
+- `packages/semantic`: ContextPacker + MockLLM + `buildSemanticMap` → `CanvasDocument`  
+- onWorkspaceOpen → session.semanticMap → LEFT `loadData`  
+- RIGHT empty until select  
+
+---
+
+**Старт:** **3.1** (Zod canvas + golden `cremniy_canvas.canvas` + выравнивание types с canvas-core).

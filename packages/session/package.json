@@ -12,9 +12,12 @@
     "clean": "rm -rf dist/"
   },
   "dependencies": {
+    "@infinity-canvas/ast-graph": "workspace:*",
+    "@infinity-canvas/detail-pane": "workspace:*",
     "@infinity-canvas/schema": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
