@@ -103,6 +103,33 @@ describe('CanvasDocument schema', () => {
       expect(parsed.nodes[0].graph).toBeUndefined();
       expect(parsed.nodes[0].color).toBeUndefined();
     });
+
+    it('extensions survive serializeDocument roundtrip', () => {
+      const doc = {
+        nodes: [{
+          id: 'n1',
+          type: 'semantic' as const,
+          x: 0, y: 0, width: 200, height: 100,
+          text: 'Architecture',
+          semantic: { kind: 'overview', summary: 'System design', traceIds: ['t1'] },
+          graph: { path: 'src/main.ts', symbol: 'App', role: 'module' as const },
+        }],
+        edges: [{ id: 'e1', fromNode: 'n1', toNode: 'n2', kind: 'import' as const, label: 'depends on' }],
+      };
+
+      const parsed = CanvasDocumentSchema.parse(doc);
+      const serialized = serializeDocument(parsed);
+
+      expect(serialized.nodes[0].semantic?.kind).toBe('overview');
+      expect(serialized.nodes[0].graph?.role).toBe('module');
+      expect(serialized.edges[0].kind).toBe('import');
+
+      // Full roundtrip: parse → serialize → parse
+      const reparsed = parseCanvas(JSON.stringify(serialized));
+      expect(reparsed.nodes[0].semantic?.kind).toBe('overview');
+      expect(reparsed.nodes[0].graph?.symbol).toBe('App');
+      expect(reparsed.edges[0].kind).toBe('import');
+    });
   });
 
   describe('Validation errors', () => {

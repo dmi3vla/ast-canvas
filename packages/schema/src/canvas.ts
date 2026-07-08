@@ -117,6 +117,9 @@ export interface SerializedNode {
   color?: string;
   text?: string;
   file?: string;
+  // Extensions
+  semantic?: { kind?: string; summary?: string; traceIds?: string[]; fileAnchors?: string[] } | null;
+  graph?: { path?: string; symbol?: string; role?: string } | null;
 }
 
 /** Serialized edge */
@@ -130,7 +133,7 @@ export interface SerializedEdge {
   kind?: string;
 }
 
-/** Strip runtime fields (isSelected etc.) for .canvas export */
+/** Strip runtime fields (isSelected etc.) for .canvas export. Preserves extensions. */
 export function stripRuntime(node: ICNode): SerializedNode {
   const out: SerializedNode = {
     id: node.id,
@@ -143,6 +146,11 @@ export function stripRuntime(node: ICNode): SerializedNode {
   if (node.color) out.color = node.color;
   if (node.type === 'file' && node.file) out.file = node.file;
   else if (node.text) out.text = node.text;
+
+  // Preserve extensions (semantic, graph)
+  if (node.semantic) out.semantic = { ...node.semantic };
+  if (node.graph) out.graph = { ...node.graph };
+
   return out;
 }
 

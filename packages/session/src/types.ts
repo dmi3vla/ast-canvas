@@ -1,5 +1,5 @@
 import type { RightMode } from '@infinity-canvas/detail-pane';
-import type { CanvasDocument, Codemap } from '@infinity-canvas/schema';
+import type { CanvasDocument, Codemap, DepGraph } from '@infinity-canvas/schema';
 import type { FileMeta } from '@infinity-canvas/ast-graph';
 
 /** Complete session state */
@@ -14,7 +14,7 @@ export interface Session {
   codemaps: Record<string, Codemap>;
 
   /** Dependency graph */
-  depGraph: any | null; // DepGraph from schema — use any to avoid circular dep
+  depGraph: DepGraph | null;
 
   /** File index from WorkspaceIndexer (optional cache) */
   fileIndex: FileMeta[] | null;

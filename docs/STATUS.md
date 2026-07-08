@@ -65,27 +65,10 @@
 - 4.2 — Mock LLM provider
 - 4.3 — Semantic map generation pipeline
 - 4.4 — Wire to App: open workspace → LLM → canvas
-- 2.1 — Repo skeleton (pnpm monorepo, electron-vite) ✅
-- 2.2 — Main + preload (BrowserWindow, Open Folder, secure IPC) ✅
-- 2.3 — AppShell split LEFT|RIGHT (критический UX-этап) ✅
-- 2.4 — Port canvas → LEFT (CanvasState, renderer, input, React wrapper) ✅
-- 2.5 — WorkspaceIndexer (walk + ignore rules) ✅
 
-### DoD Фазы 2:
-- [x] pnpm monorepo, 8 packages, все проходят `pnpm typecheck`
-- [x] `pnpm dev` поднимает Electron окно с React renderer
-- [x] Toolbar: Open Folder → workspace path + file count
-- [x] Split LEFT|RIGHT с resizable splitter (drag, persist ratio на mouseup)
-- [x] LEFT: Canvas2D canvas с 5 demo-узлами + рёбрами, pan/zoom/drag/click-select
-- [x] RIGHT: 4 режима (empty, content, codemap, source), переключение кнопками
-- [x] Mock content: summary, meta, codemap deps/derives/locations, source viewer
-- [x] Keyboard: Esc → clear selection, Delete → remove node
-- [x] Splitter drag resize + persist на mouseup
-- [x] CSP strict в index.html
-- [x] contextIsolation preload с typed API + path guards (isPathInWorkspace)
-- [x] Тесты: canvas-core 16/16, ast-graph 7/7 ✅
-- [x] Roundtrip serialize/deserialize Obsidian .canvas формат
-- [x] WorkspaceIndexer: walk + ignore (node_modules, .git, dist, binary)
+### Known residual (Phase 3):
+- [ ] `canvas-core` types still independent from `schema` (dual types, not blocking)
+- [ ] SessionStore not wired into App (deferred → Phase 4)
 
 ---
 

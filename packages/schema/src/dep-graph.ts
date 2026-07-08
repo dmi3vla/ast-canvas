@@ -91,9 +91,9 @@ export function createFixtureGraph(): DepGraph {
   addNode(g, { id: 'C', path: 'src/c.ts', name: 'C', kind: 'file' });
   addNode(g, { id: 'X', path: 'node_modules/x/index.js', name: 'X', kind: 'external' });
 
-  addEdge(g, { from: 'A', to: 'B', kind: 'import' });
-  addEdge(g, { from: 'B', to: 'C', kind: 'import' });
-  addEdge(g, { from: 'X', to: 'B', kind: 'import' }); // X depends on B? No, B imports X
+  addEdge(g, { from: 'A', to: 'B', kind: 'import' });  // A imports B
+  addEdge(g, { from: 'B', to: 'C', kind: 'import' });  // B imports C
+  addEdge(g, { from: 'B', to: 'X', kind: 'import' });  // B imports external X
 
   return g;
 }

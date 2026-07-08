@@ -1,1 +1,40 @@
-Внесены изменения.
+задачи под 3ю фазу исходя из сделанного из revu.md если вся ясно можно реализовывать
+
+Понял. Реализую Фазу 3 по плану: 3.0 → 3.1 → 3.2‖3.3 → 3.4 → 3.5.
+
+Читаю текущее состояние для 3.0 и готовлю 3.1:
+
+Начинаю параллельно 3.0 (residual) и 3.1 (Zod schema):
+
+Применяю 3.0 фикс и создаю 3.1 одновременно:
+
+Проверяю typecheck и тесты schema:
+
+3.1 ✅. Теперь 3.2 (codemap) и 3.3 (dep-graph) параллельно:
+
+🎉 31/31 тестов schema. Теперь 3.4 — Session state + cache:
+
+Теперь полный прогон и 3.5 (thin App wire):
+
+🎉 61 тестов, 8/8 typecheck. Делаю 3.5 — thin wire + STATUS:
+
+Сложный re-export. Возвращаю types.ts и делаю проще — добавляю зависимость от schema в package.json:
+
+Обновляю STATUS.md:
+
+✅ Фаза 3 завершена
+CI-статус
+Что создано
+Этап	Файлы	Тесты
+3.0 Residual	main/index.ts — workspace:getLast проверяет existsSync	—
+3.1 Canvas Zod	schema/src/canvas.ts — Zod schemas + parse/validate/serialize	11 ✅
+3.2 Codemap	schema/src/codemap.ts — langgraph.codemap parse + helpers	10 ✅
+3.3 DepGraph	schema/src/dep-graph.ts — pure graph + incoming/outgoing/egoNetwork	10 ✅
+3.4 Session	session/src/ — SessionStore + .infinity-canvas/ persist	7 ✅
+3.5 Thin wire	canvas-core types + STATUS update	—
+Ключевые результаты
+Schema package — единый source of truth для: .canvas (Obsidian + extensions), .codemap (langgraph формат), DepGraph (pure graph)
+Golden tests: cremniy_canvas.canvas (23 nodes, 39 edges) и langgraph.codemap (6 traces) парсятся
+Session: persist/load в .infinity-canvas/session.json + semantic-map.canvas, сохраняет node ids и ui state
+Location fields optional (LLM-friendly) — учтена errata из ревью Фазы 1
+Готово к Фазе 4 — LLM Semantic Map

@@ -18,24 +18,24 @@ describe('DepGraph', () => {
       expect(g.edges).toHaveLength(3);
     });
 
-    it('incoming for B returns [A, X]', () => {
+    it('incoming for B returns [A] (A imports B)', () => {
       const ins = incoming(g, 'B');
-      expect(ins).toHaveLength(2);
-      expect(ins.map(e => e.from).sort()).toEqual(['A', 'X']);
+      expect(ins).toHaveLength(1);
+      expect(ins[0].from).toBe('A');
     });
 
-    it('outgoing for B returns [C]', () => {
+    it('outgoing for B returns [C, X] (B imports C and X)', () => {
       const outs = outgoing(g, 'B');
-      expect(outs).toHaveLength(1);
-      expect(outs[0].to).toBe('C');
+      expect(outs).toHaveLength(2);
+      expect(outs.map(e => e.to).sort()).toEqual(['C', 'X']);
     });
 
     it('egoNetwork depth 1 from B', () => {
       const ego = egoNetwork(g, 'B', 1);
-      expect(ego.nodes.has('A')).toBe(true);
+      expect(ego.nodes.has('A')).toBe(true);  // A imports B
       expect(ego.nodes.has('B')).toBe(true);
-      expect(ego.nodes.has('C')).toBe(true);
-      expect(ego.nodes.has('X')).toBe(true);
+      expect(ego.nodes.has('C')).toBe(true);  // B imports C
+      expect(ego.nodes.has('X')).toBe(true);  // B imports X
       expect(ego.edges.length).toBeGreaterThanOrEqual(3);
     });
 
