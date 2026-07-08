@@ -1,7 +1,13 @@
 // @infinity-canvas/semantic
-// LLM context packer: prepares prompt context for semantic map generation.
-// Codemap builder: constructs Codemap from LLM response.
+// LLM context packer + semantic map builder.
 
-export const PACKAGE_NAME = '@infinity-canvas/semantic';
+export { contextPacker } from './contextPacker';
+export type { ContextPack, ContextPackerOptions, FileReader } from './contextPacker';
 
-// Will be implemented in Phase 4
+export { MockLLMProvider, OpenAICompatibleProvider, OpenRouterProvider, createProvider } from './llmProviders';
+export type { LLMProvider, ChatMessage, LlmConfig } from './llmProviders';
+
+export { buildSemanticMap } from './buildSemanticMap';
+export type { SemanticMapResult } from './buildSemanticMap';
+
+export { SYSTEM_CODEMAP, EXAMPLE_CODEMAP_MINI, buildCodemapUserPrompt, projectCodemapToCanvas } from './prompts';

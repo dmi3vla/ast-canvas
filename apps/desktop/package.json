@@ -15,10 +15,12 @@
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
+    "@infinity-canvas/ast-graph": "workspace:*",
     "@infinity-canvas/canvas-core": "workspace:*",
     "@infinity-canvas/detail-pane": "workspace:*",
     "@infinity-canvas/ipc": "workspace:*",
     "@infinity-canvas/schema": "workspace:*",
+    "@infinity-canvas/semantic": "workspace:*",
     "@infinity-canvas/session": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

@@ -8,6 +8,7 @@
     "build": "pnpm --filter @infinity-canvas/desktop build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
+    "test:live-llm": "tsx packages/semantic/scripts/live-haiku-smoke.ts",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean"
   },
@@ -15,5 +16,8 @@
     "node": ">=22",
     "pnpm": ">=10"
   },
-  "packageManager": "pnpm@11.10.0"
+  "packageManager": "pnpm@11.10.0",
+  "devDependencies": {
+    "tsx": "^4.23.0"
+  }
 }

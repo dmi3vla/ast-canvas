@@ -1,191 +1,281 @@
 
 
-ревью по реализации фазы 3 отчет в session.txt
+давай задачи для агента под тест-модель: 'kr/claude-haiku-4.5', API Base:   'http://localhost:20128/v1' apikey: 'sk-99e1d2510daa5159-d66de2-710a006b'
 
 ## Tools
 
-- Read: /home/resu/Documents/dev/ast-canvas/session.txt
-- Read: /home/resu/Documents/dev/ast-canvas/docs/STATUS.md
-- Execute: cd /home/resu/Documents/dev/ast-canvas && export PATH="/home/resu/.nvm/versions/node/v22.23.1/bin:$PATH"
-find packages/schema packages/session -type f \( -name '*.ts' -o -name '*.json' \) ! -path '*/node_modules/*' 2>/dev/null | sort
-echo '---'
-ls -la packages/schema/src packages/schema/tests packages/session/src packages/session/tests 2>/dev/null
-echo '---GIT---'
-git log --oneline -10; git status -sb | head -40
- (Locate Phase 3 artifacts and git state)
-- Read: /home/resu/Documents/dev/ast-canvas/packages/schema/src/canvas.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/schema/src/codemap.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/schema/src/dep-graph.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/session/src/SessionStore.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/session/src/types.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/canvas-core/src/types.ts (1-40)
-- Read: /home/resu/Documents/dev/ast-canvas/packages/schema/tests/canvas.test.ts (1-80)
-- Read: /home/resu/Documents/dev/ast-canvas/packages/session/tests/session.test.ts (1-100)
-- Read: /home/resu/Documents/dev/ast-canvas/packages/canvas-core/package.json
-- Read: /home/resu/Documents/dev/ast-canvas/apps/desktop/src/main/index.ts (151-189)
-- Read: /home/resu/Documents/dev/ast-canvas/packages/canvas-core/src/index.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/schema/src/index.ts
-- Read: /home/resu/Documents/dev/ast-canvas/packages/schema/tests/canvas.test.ts (49-128)
-- Search: countFiles|SessionStore|semantic
+- Execute: export PATH="/home/resu/.nvm/versions/node/v22.23.1/bin:$PATH"
+ls -la /home/resu/Documents/dev/ast-canvas/packages/semantic/src/ 2>/dev/null
+head -50 /home/resu/Documents/dev/ast-canvas/packages/semantic/src/llmProviders.ts 2>/dev/null
+grep -n "createProvider\|baseUrl\|OPENROUTER\|buildSemanticMap\|config" /home/resu/Documents/dev/ast-canvas/packages/semantic/src/*.ts /home/resu/Documents/dev/ast-canvas/apps/desktop/src/main/*.ts 2>/dev/null | head -40
+ (Inspect semantic LLM config for task accuracy)
 
 ## Assistant
 
-# Ревью: Фаза 3 + отчёт `session.txt`
+# Задачи агента: тест-модель Haiku (localhost)
 
-## Вердикт
+## Test target (не коммитить ключ в git)
 
-| | |
-|--|--|
-| **Фаза 3 (packages)** | **Accepted with notes** — schema + session solid |
-| **CI 61 tests / typecheck** | ✅ **verified** (31+16+7+7) |
-| **Отчёт session.txt** | **B** — честный по packages, overclaim 3.5 / «single SoT» |
-| **App integration (3.5)** | ❌ **почти нет** — STATUS ≠ wire |
-| **Готовность к Phase 4** | **Да**, после fix `serializeDocument` extensions |
+| Param | Value |
+|-------|--------|
+| model | `kr/claude-haiku-4.5` |
+| baseUrl | `http://localhost:20128/v1` |
+| apiKey | `sk-99e1d2510daa5159-d66de2-710a006b` |
 
----
+Секреты: только **env** / **userData config** / `.env.local` в `.gitignore`.  
+В репо — пример `.env.example` **без** реального key.
 
-## Claim-by-claim (session.txt)
-
-| Claim | Reality |
-|-------|---------|
-| 3.0 `getLast` + `existsSync` + `lastWorkspacePath` | ✅ main: path exists → set `lastWorkspacePath` |
-| 3.1 Zod canvas + golden cremniy | ✅ `canvas.test.ts` (title node, edges) |
-| 3.2 codemap, 6 traces, optional loc fields | ✅ `lineContent`/`title` optional |
-| 3.3 DepGraph egoNetwork A→B→C | ✅ pure helpers + fixture |
-| 3.4 Session save→load + node ids | ✅ temp dir tests, `.infinity-canvas/` |
-| schema 31 / session 7 | ✅ |
-| **61 tests total** | ✅ 31+16+7+7 |
-| typecheck 8/8 | ✅ |
-| **Schema = single source of truth** | ⚠️ **overclaim** — `canvas-core/types.ts` **дублирует** ICNode; **нет** dep на schema |
-| **3.5 thin wire** | ⚠️ «canvas-core types + STATUS» — **App не использует** SessionStore / schema / countFiles |
-| Ready Phase 4 | ✅ packages; ⚠️ serialize drops `semantic`/`graph` |
+**Сейчас:** `workspace:buildSemanticMap` жёстко зовёт **Mock** — для live-теста нужно снять этот hardcode.
 
 ---
 
-## Качество реализации по этапам
-
-### 3.0 Residual — ✅
-`workspace:getLast` синхронизирует sandbox. Хороший hotfix.
-
-### 3.1 Canvas Zod — ✅ (P1 serialize)
-- Хорошие `parseCanvas` / `safeParse` / extensions на parse  
-- Golden `cremniy_canvas.canvas`  
-- **P1 bug:** `stripRuntime` / `serializeDocument` **не сохраняют** `semantic`, `graph` (только text/file/color).  
-  Session `saveToWorkspace` зовёт `serializeDocument` → semantic map **теряет extensions** на disk.  
-  Тест «extensions roundtrip» проверяет только **parse**, не serialize → false confidence.  
-
-### 3.2 Codemap — ✅
-Helpers `listTraces` / `flattenLocations` / `traceToContentSummary` — готовы для RIGHT. Errata optional fields учтена.
-
-### 3.3 DepGraph — ✅
-Pure API ok. Fixture edge `X→B` с комментарием «B imports X» — **направление путает** (семантика import-edge: обычно importer→imported). Не блокер, поправить до фазы 6.
-
-### 3.4 Session — ✅ package / ⚠️ types
-- Persist `session.json` + `semantic-map.canvas`  
-- `depGraph: any` — костыль  
-- `codemaps` keys only on save, full maps not reloaded — ok MVP note  
-- **Не в desktop App**
-
-### 3.5 — ❌ incomplete
-Отчёт и STATUS: «thin wire ✅».  
-Факт: нет `SessionStore` в App, нет load map → LEFT, нет indexer `fileCount`, canvas-core **не** re-export schema types (`package.json` без `@infinity-canvas/schema`).
-
-STATUS ещё и **сломана структура**: список 2.1–2.5 попал под «Следующая фаза: 4».
-
----
-
-## Отчёт `session.txt`
-
-**Плюсы**
-- Порядок 3.0→3.1→3.2‖3.3→3.4→3.5  
-- Таблица этап/файлы/тесты  
-- Числа CI совпадают с прогоном  
-- Next: Phase 4  
-
-**Минусы**
-- «Фаза 3 завершена» без residual  
-- 3.5 раздут  
-- SoT claim ложный  
-- Нет known bugs (serialize)  
-- Короткий transcript (лучше, чем wipe, но мало audit trail)  
-
-**Score отчёта: 7/10**
-
----
-
-## Scores кода
-
-| Пакет / область | Score | Note |
-|-----------------|:-----:|------|
-| schema/canvas | **8** | fix serialize |
-| schema/codemap | **9** | |
-| schema/dep-graph | **8** | fixture direction |
-| session | **7.5** | package only |
-| canvas-core ↔ schema | **4** | still dual types |
-| App wire 3.5 | **2** | not done |
-| STATUS.md | **6** | structure glitch |
-| **Phase 3 overall** | **7.5/10** | accept packages |
-
----
-
-## Findings
-
-### P1
-1. **`serializeDocument` drops `semantic`/`graph`** — критично для Phase 4 cache.  
-   Fix + test: parse → serialize → parse preserves extensions.
-
-### P2
-2. **Не single SoT:** canvas-core types vs schema — либо dep + re-export, либо document types only in schema, runtime `isSelected` local.  
-3. **3.5 не сделан** — Session/App wire.  
-4. **STATUS** — убрать 2.x list из секции Phase 4; Residual section.  
-5. `depGraph: any` → `DepGraph | null`.  
-6. Indexer всё ещё не в Toolbar count.
-
-### P3
-7. Fixture X→B direction comment.  
-8. No IPC `session:get/patch` (план optional).  
-9. codemapKeys not rehydrated.
-
----
-
-## Что принять / что добить
-
-| Accept now | Before Phase 4 |
-|------------|----------------|
-| 3.0, 3.1 parse, 3.2, 3.3, 3.4 package | P1 serialize extensions |
-| tests 61 green | thin wire: Open Folder → SessionStore + optional load map to canvas |
-| | unify types canvas-core ← schema (or document dual-write note) |
-
----
-
-## Промт residual (короткий)
+## T0 — Smoke endpoint (5 мин, до кода)
 
 ```
-НЕ Phase 4. Только residual Phase 3:
+Проверь что gateway жив (из shell, ключ в env):
 
-1) packages/schema stripRuntime/serializeDocument:
-   preserve semantic, graph on nodes; kind/label on edges.
-   Test: extensions survive serialize→parse.
+export INFINITY_LLM_API_KEY='sk-99e1d2510daa5159-d66de2-710a006b'
+export INFINITY_LLM_BASE_URL='http://localhost:20128/v1'
+export INFINITY_LLM_MODEL='kr/claude-haiku-4.5'
 
-2) packages/session types: depGraph: DepGraph | null (import type from schema)
+curl -sS "$INFINITY_LLM_BASE_URL/chat/completions" \
+  -H "Authorization: Bearer $INFINITY_LLM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "kr/claude-haiku-4.5",
+    "messages": [{"role":"user","content":"Reply with exactly: pong"}],
+    "max_tokens": 32
+  }' | head -c 800
 
-3) Optional 3.5-min:
-   App Open Folder → SessionStore.loadFromWorkspace || create;
-   if semanticMap → CanvasView.loadData(JSON.stringify(map))
-   (can skip if time — document in STATUS)
-
-4) Fix docs/STATUS.md structure (Phase 4 next steps only; Residual list)
-5) pnpm test && typecheck
+DoD: HTTP 200, content содержит pong (или аналог).
+Если fail — не идти в T2; починить gateway/порт 20128.
 ```
 
 ---
 
-## Phase 4 (когда residual закрыт)
+## T1 — LLM config + OpenAI-compatible provider
 
-Не раздувать: 4.1 ContextPacker → 4.2 MockLLM → 4.3 buildSemanticMap → 4.4 on open → session.semanticMap → LEFT.
+```
+Этап T1 ONLY. packages/semantic + desktop config.
+
+1) Типы:
+   LlmConfig {
+     provider: 'mock' | 'openai-compatible'
+     baseUrl?: string
+     apiKey?: string
+     model?: string
+     timeoutMs?: number
+   }
+
+2) Env (приоритет):
+   INFINITY_LLM_PROVIDER=openai-compatible|mock
+   INFINITY_LLM_BASE_URL=http://localhost:20128/v1
+   INFINITY_LLM_API_KEY=...
+   INFINITY_LLM_MODEL=kr/claude-haiku-4.5
+   (legacy: OPENROUTER_API_KEY как fallback apiKey)
+
+3) OpenRouterProvider переименовать/обобщить → OpenAICompatibleProvider
+   (или оставить alias): baseUrl + model + apiKey из options/env.
+   POST {baseUrl}/chat/completions  (у вас уже так)
+   model: options.model || env || default
+   timeout: AbortSignal
+
+4) createProvider(config?: Partial<LlmConfig>):
+   - mock → MockLLMProvider
+   - openai-compatible → OpenAICompatibleProvider
+   - default: mock if no key, else openai-compatible
+
+5) .env.example:
+   INFINITY_LLM_PROVIDER=openai-compatible
+   INFINITY_LLM_BASE_URL=http://localhost:20128/v1
+   INFINITY_LLM_API_KEY=
+   INFINITY_LLM_MODEL=kr/claude-haiku-4.5
+
+6) .gitignore: .env .env.local
+7) НЕ хардкодить sk-... в исходники.
+
+DoD: unit test createProvider with fake config uses baseUrl/model;
+     typecheck green; STATUS note T1.
+```
 
 ---
 
-## Одной строкой
+## T2 — Wire main: buildSemanticMap uses config (не always mock)
 
-Фаза 3 **packages + tests реально зелёные и полезные**, отчёт в целом **верный**, но **serialize режет extensions**, **3.5/SoT/App wire overclaim**; **принять schema/session**, починить serialize, потом Phase 4.
+```
+Этап T2 ONLY. apps/desktop/src/main/index.ts
+
+1) workspace:buildSemanticMap(workspacePath, options?: { force?: boolean; useMock?: boolean })
+2) Provider:
+   const cfg = await loadLlmConfig() // from env + config:get('llm')
+   const llm = options?.useMock ? new MockLLMProvider() : createProvider(cfg)
+3) Log (no secrets): provider name, model, baseUrl host only
+4) On LLM fail: fallback Mock once + diagnostics.warning; OR surface error to UI
+5) force=true: skip cache (regenerate)
+
+DoD: with env set to localhost haiku, Open Folder / Regenerate
+     calls real API (not mock) when provider=openai-compatible.
+     Without key → mock. typecheck.
+```
+
+**Test env for agent shell:**
+```bash
+export INFINITY_LLM_PROVIDER=openai-compatible
+export INFINITY_LLM_BASE_URL=http://localhost:20128/v1
+export INFINITY_LLM_API_KEY='sk-99e1d2510daa5159-d66de2-710a006b'
+export INFINITY_LLM_MODEL='kr/claude-haiku-4.5'
+cd /home/resu/Documents/dev/ast-canvas && pnpm dev
+# Open fixtures/mini-project, Regenerate
+```
+
+---
+
+## T3 — Codemap-first prompt (few-shot) + optional canvas project
+
+```
+Этап T3 ONLY. packages/semantic prompts.
+
+Цель первой генерации: формат langgraph.codemap
+  область id "1","2" → узлы "1a","1b"...
+
+1) packages/semantic/src/prompts.ts:
+   - SYSTEM_CODEMAP (иерархия id, only JSON, rules)
+   - EXAMPLE_CODEMAP_MINI (мини-пример 2 traces / 1a,1b,2a,2b)
+   - buildCodemapUserPrompt(pack, projectName)
+
+2) buildSemanticMap options:
+   mode: 'canvas' | 'codemap'  (default: keep canvas for LEFT;
+          add buildCodemap / mode codemap for test)
+
+   Рекомендация для Haiku-теста:
+   - mode='codemap' → parseCodemap from schema
+   - then projectCodemapToCanvas(codemap) → CanvasDocument for LEFT
+     (trace → semantic node id=trace.id; optional location nodes id=1a
+      or fileAnchors only — MVP: area nodes + edges between related traces)
+
+3) MVP projection:
+   - one canvas node per trace (id "1","2")
+   - text = title + description
+   - semantic: { kind:'area', summary, traceIds:[id], fileAnchors: locations.map(path) }
+   - edges: sequential 1→2→3 kind=semantic
+   - grid layout
+
+4) Tests:
+   - mock still works for canvas mode
+   - unit: projectCodemapToCanvas on EXAMPLE → nodes ids 1,2 present
+   - optional live test skipped unless INFINITY_LLM_LIVE=1
+
+DoD: prompts.ts exists; codemap mode parseCodemap validates;
+     projection → parseCanvas OK. STATUS T3.
+```
+
+---
+
+## T4 — Live integration test script (Haiku)
+
+```
+Этап T4 ONLY. Script + docs, не e2e Electron обязательно.
+
+packages/semantic/scripts/live-haiku-smoke.ts (or tools/):
+
+1) Read env INFINITY_*
+2) indexWorkspace(fixtures/mini-project)
+3) contextPacker
+4) createProvider(openai-compatible, model kr/claude-haiku-4.5, base localhost:20128)
+5) buildSemanticMap(..., mode codemap or canvas)
+6) Write output to /tmp/infinity-haiku-map.json (and .canvas if projected)
+7) Print: node count, edge count, first 3 titles, provider name
+8) Exit 1 if parse fails
+
+package.json script:
+  "test:live-llm": "INFINITY_LLM_LIVE=1 tsx packages/semantic/scripts/live-haiku-smoke.ts"
+
+Run only when gateway up.
+DoD: script succeeds against real Haiku; document in STATUS.
+Do NOT commit API key or /tmp artifacts.
+```
+
+---
+
+## T5 — UI Settings (минимальный settings panel)
+
+```
+Этап T5 ONLY (optional after T2–T4).
+
+Settings UI or config:set('llm', {...}):
+  provider: mock | openai-compatible
+  baseUrl, model, apiKey (password field)
+  "Test connection" button → short complete("pong")
+  Save to userData config/llm.json (not workspace git)
+
+Wire createProvider from saved config in main.
+DoD: can set localhost + haiku without export env every time.
+```
+
+---
+
+## Порядок
+
+```
+T0 smoke curl
+ → T1 config + provider
+ → T2 main wire (drop forced mock)
+ → T3 codemap few-shot prompts + projection
+ → T4 live-haiku-smoke script
+ → T5 settings UI (optional)
+```
+
+---
+
+## Master prompt агенту
+
+```
+Проект: /home/resu/Documents/dev/ast-canvas
+
+Тест-LLM (НЕ коммитить ключ в git):
+  model:   kr/claude-haiku-4.5
+  baseUrl: http://localhost:20128/v1
+  apiKey:  из env INFINITY_LLM_API_KEY (user will export)
+  provider: openai-compatible
+
+Сейчас ТОЛЬКО этап: T1
+(затем T2, T3, T4 по DoD)
+
+Требования:
+- OpenAI-compatible POST {baseUrl}/chat/completions
+- createProvider(config) with baseUrl/model/apiKey
+- workspace:buildSemanticMap must NOT always use Mock
+- Codemap init prompt: areas "1","2" + nodes "1a","1b" + EXAMPLE few-shot
+- Project codemap → canvas for LEFT
+- .env.example without secrets; .gitignore .env*
+- pnpm typecheck + unit tests green
+- Live tests only if gateway responds
+
+Update docs/STATUS.md. Append session notes.
+```
+
+---
+
+## Env one-liner для пользователя
+
+```bash
+export INFINITY_LLM_PROVIDER=openai-compatible
+export INFINITY_LLM_BASE_URL='http://localhost:20128/v1'
+export INFINITY_LLM_API_KEY='sk-99e1d2510daa5159-d66de2-710a006b'
+export INFINITY_LLM_MODEL='kr/claude-haiku-4.5'
+```
+
+После T1–T2: `pnpm dev` → Open `fixtures/mini-project` → Regenerate.  
+После T4: `pnpm test:live-llm`.
+
+---
+
+## DoD «Haiku live OK»
+
+- [ ] curl T0 green  
+- [ ] Regenerate / smoke script: `parseCanvas` или `parseCodemap` OK  
+- [ ] LEFT показывает ≥4 semantic/area nodes (не demo seed)  
+- [ ] Ключ не в git history  
+- [ ] Mock всё ещё default без env  
+
+**Старт агента: T0 (curl) → T1.**

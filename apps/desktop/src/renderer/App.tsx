@@ -1,19 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { RightMode } from '@infinity-canvas/detail-pane';
+import type { CanvasViewHandle } from '@infinity-canvas/canvas-core';
 import { Toolbar } from './components/Toolbar';
 import { LeftPane } from './components/LeftPane';
 import { Splitter } from './components/Splitter';
 import { RightPane } from './components/RightPane';
 
 export type { RightMode };
-
-export interface UIMockNode {
-  id: string;
-  title: string;
-  type: 'text' | 'file' | 'semantic';
-  summary: string;
-  fileCount?: number;
-}
 
 export interface AppState {
   leftRatio: number;
@@ -22,6 +15,9 @@ export interface AppState {
   source?: { path: string; line: number };
   workspacePath: string | null;
   fileCount: number;
+  isLoading: boolean;
+  mapNodeCount: number;
+  fromCache: boolean;
 }
 
 export function App() {
@@ -31,7 +27,47 @@ export function App() {
     rightMode: 'empty',
     workspacePath: null,
     fileCount: 0,
+    isLoading: false,
+    mapNodeCount: 0,
+    fromCache: false,
   });
+
+  const canvasRef = useRef<CanvasViewHandle>(null);
+  const [canvasData, setCanvasData] = useState<string | null>(null);
+
+  // Build semantic map for a workspace path
+  const buildMap = useCallback(async (workspacePath: string, force = false) => {
+    if (!window.electronAPI) return;
+    setState(s => ({ ...s, isLoading: true }));
+
+    try {
+      const result = await window.electronAPI.buildSemanticMap(workspacePath, { force });
+      if (result.error) {
+        console.error('Semantic map error:', result.error);
+        setState(s => ({ ...s, isLoading: false }));
+        return;
+      }
+
+      if (result.json) {
+        setCanvasData(result.json);
+      }
+
+      setState(s => ({
+        ...s,
+        workspacePath,
+        fileCount: result.fileCount ?? 0,
+        mapNodeCount: result.nodeCount ?? 0,
+        fromCache: result.fromCache ?? false,
+        isLoading: false,
+        selectedNodeId: null,
+        rightMode: 'empty',
+        source: undefined,
+      }));
+    } catch (err) {
+      console.error('Build map failed:', err);
+      setState(s => ({ ...s, isLoading: false }));
+    }
+  }, []);
 
   // Load persisted ratio + auto-load last workspace
   useEffect(() => {
@@ -43,17 +79,10 @@ export function App() {
             setState(s => ({ ...s, leftRatio: config.leftRatio as number }));
           }
 
-          // Auto-load last workspace
+          // Auto-load last workspace + build semantic map
           const lastPath = await window.electronAPI.getLastWorkspace();
           if (lastPath) {
-            const result = await window.electronAPI.listFiles(lastPath);
-            if (!result.error) {
-              setState(s => ({
-                ...s,
-                workspacePath: lastPath,
-                fileCount: result.files?.length ?? 0,
-              }));
-            }
+            await buildMap(lastPath);
           }
         }
       } catch {
@@ -61,7 +90,7 @@ export function App() {
       }
     };
     loadPersisted();
-  }, []);
+  }, [buildMap]);
 
   const handleSelectNode = useCallback((nodeId: string | null) => {
     setState(s => ({
@@ -85,12 +114,10 @@ export function App() {
   }, []);
 
   const handleSetRatio = useCallback((ratio: number) => {
-    // Local-only update during drag (fast, no I/O)
     setState(s => ({ ...s, leftRatio: ratio }));
   }, []);
 
   const handleDragEnd = useCallback(async (ratio: number) => {
-    // Persist only when drag ends (avoid thrashing)
     try {
       if (window.electronAPI) {
         await window.electronAPI.setConfig('ui-settings', { leftRatio: ratio });
@@ -105,18 +132,19 @@ export function App() {
       if (window.electronAPI) {
         const folderPath = await window.electronAPI.openWorkspace();
         if (folderPath) {
-          const result = await window.electronAPI.listFiles(folderPath);
-          setState(s => ({
-            ...s,
-            workspacePath: folderPath,
-            fileCount: result.files?.length ?? 0,
-          }));
+          await buildMap(folderPath);
         }
       }
     } catch (err) {
       console.error('Failed to open folder:', err);
     }
-  }, []);
+  }, [buildMap]);
+
+  const handleRegenerate = useCallback(async () => {
+    if (state.workspacePath) {
+      await buildMap(state.workspacePath, true);
+    }
+  }, [state.workspacePath, buildMap]);
 
   // Keyboard: Esc → clear selection
   useEffect(() => {
@@ -134,11 +162,19 @@ export function App() {
       <Toolbar
         workspacePath={state.workspacePath}
         fileCount={state.fileCount}
+        isLoading={state.isLoading}
+        mapNodeCount={state.mapNodeCount}
+        fromCache={state.fromCache}
         onOpenFolder={handleOpenFolder}
+        onRegenerate={handleRegenerate}
       />
       <div className="app-main">
         <div className="left-pane" style={{ flex: `0 0 ${state.leftRatio * 100}%` }}>
-          <LeftPane onSelectNode={handleSelectNode} />
+          <LeftPane
+            ref={canvasRef}
+            onSelectNode={handleSelectNode}
+            initialData={canvasData}
+          />
         </div>
         <Splitter ratio={state.leftRatio} onRatioChange={handleSetRatio} onDragEnd={handleDragEnd} />
         <div className="right-pane-shell" style={{ flex: 1 }}>

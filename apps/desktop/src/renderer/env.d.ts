@@ -20,6 +20,14 @@ interface ElectronAPI {
   }>;
   getConfig: (key: string) => Promise<unknown>;
   setConfig: (key: string, value: unknown) => Promise<{ success?: boolean; error?: string }>;
+  buildSemanticMap: (workspacePath: string, options?: { force?: boolean; useMock?: boolean }) => Promise<{
+    json?: string;
+    fileCount?: number;
+    fromCache?: boolean;
+    nodeCount?: number;
+    provider?: string;
+    error?: string;
+  }>;
 }
 
 declare global {

@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-09  
-> Текущая фаза: **3 — Unified Data Model** ✅
+> Текущая фаза: **4 — LLM Semantic Map** ✅ (Live Haiku OK: 4 traces → canvas)
 
 ---
 
@@ -58,21 +58,45 @@
 
 ---
 
-## Следующая фаза: 4 — LLM Semantic Map
+## Следующая фаза: 4 — LLM Semantic Map ✅
 
-Ближайшие этапы:
-- 4.1 — Context packer (`packages/semantic`)
-- 4.2 — Mock LLM provider
-- 4.3 — Semantic map generation pipeline
-- 4.4 — Wire to App: open workspace → LLM → canvas
+| Этап | Артефакт | Статус |
+|------|----------|:------:|
+| 4.1 | `packages/semantic/src/contextPacker.ts` — pack workspace for LLM | ✅ |
+| 4.2 | `packages/semantic/src/llmProviders.ts` — MockLLM + OpenRouter | ✅ |
+| 4.3 | `packages/semantic/src/buildSemanticMap.ts` — prompt → parse → layout | ✅ |
+| 4.4 | `main/index.ts` IPC pipeline + App wire (open → map → LEFT) | ✅ |
+| 4.5 | Toolbar «Regenerate Map» + cache second open | ✅ |
+| T1 | `LlmConfig` + `OpenAICompatibleProvider` + SSE + env | ✅ |
+| T2 | `createProvider()` replaces hardcoded Mock in main | ✅ |
+| T3 | `prompts.ts`: SYSTEM_CODEMAP + few-shot + `projectCodemapToCanvas` | ✅ |
+| T4 | `test:live-llm` smoke: Haiku → 4 traces, 14 locs → canvas OK | ✅ |
 
-### Known residual (Phase 3):
-- [ ] `canvas-core` types still independent from `schema` (dual types, not blocking)
-- [ ] SessionStore not wired into App (deferred → Phase 4)
+### DoD Фазы 4:
+- [x] `pnpm typecheck` — 8/8 зелёные
+- [x] `pnpm test` — 79 тестов
+- [x] Mock: open mini-project → LEFT ≥5 semantic nodes
+- [x] **Live Haiku:** `test:live-llm` → codemap parse OK (4 traces) → canvas projection OK (4 nodes, 3 edges)
+- [x] Cache: second open loads from `.infinity-canvas/semantic-map.canvas`
+- [x] CI green, no API key required (Mock by default)
+- [x] `createProvider` auto: Mock without key, OpenAI-compatible with `INFINITY_LLM_*` env
+- [x] `.env.example` template, `.gitignore` covers `.env*`
+- [x] `docs/STATUS.md` → Phase 4 ✅, next Phase 5
 
 ---
 
-## Структура проекта (целевая)
+## Следующая фаза: 5 — AST Graph (import resolution)
+
+Ближайшие этапы:
+- 5.1 — Import resolver (regex patterns for JS/TS)
+- 5.2 — DepGraph builder from file-level imports
+- 5.3 — Wire dep-graph to RIGHT codemap panel
+- 5.4 — Token references (lightweight, file-level)
+
+### Known residual (Phase 4):
+- [ ] `canvas-core` types still independent from `schema` (dual types, non-blocking)
+- [ ] OpenRouter provider not tested (requires API key)
+- [ ] Codemap traces not generated (deferred → Phase 7)
 
 ```
 infinity-canvas/

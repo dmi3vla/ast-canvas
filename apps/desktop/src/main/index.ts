@@ -169,6 +169,92 @@ ipcMain.handle('workspace:getLast', async () => {
   }
 });
 
+// ── Semantic Map Pipeline ───────────────────────────────
+
+ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: string, options?: { force?: boolean; useMock?: boolean }) => {
+  try {
+    lastWorkspacePath = workspacePath;
+
+    // Dynamic imports
+    const { indexWorkspace } = await import('@infinity-canvas/ast-graph');
+    const { contextPacker } = await import('@infinity-canvas/semantic');
+    const { createProvider, MockLLMProvider } = await import('@infinity-canvas/semantic');
+    const { buildSemanticMap } = await import('@infinity-canvas/semantic');
+    const { serializeDocument } = await import('@infinity-canvas/schema');
+    const { SessionStore } = await import('@infinity-canvas/session');
+
+    // 1) Index workspace
+    const files = await indexWorkspace(workspacePath);
+    const fileCount = files.length;
+
+    // 2) Session — try load from cache (skip if force)
+    const session = new SessionStore();
+    if (!options?.force) {
+      const cached = await session.loadFromWorkspace(workspacePath);
+      if (cached && session.get().semanticMap) {
+        const map = session.get().semanticMap!;
+        return {
+          json: JSON.stringify(serializeDocument(map)),
+          fileCount,
+          fromCache: true,
+          nodeCount: map.nodes.length,
+          provider: 'cache',
+        };
+      }
+    }
+
+    // 3) Build context pack
+    const pack = await contextPacker(files, async (p) => readFile(p, 'utf-8'), {
+      budgetChars: 80_000,
+    });
+
+    // 4) LLM provider from env/config (not always Mock)
+    const llm = options?.useMock
+      ? new MockLLMProvider()
+      : createProvider();
+
+    const providerName = llm.name;
+    console.log(`[semantic] Using provider: ${providerName}`);
+
+    const result = await buildSemanticMap(pack, llm);
+
+    // Fallback to Mock on failure
+    if (result.diagnostics.warnings.length > 0 && providerName !== 'mock') {
+      console.warn(`[semantic] LLM failed, falling back to Mock. Warnings:`, result.diagnostics.warnings);
+      const mockResult = await buildSemanticMap(pack, new MockLLMProvider());
+
+      session.patch({ workspaceRoot: workspacePath, semanticMap: mockResult.document });
+      session.patchUI({ rightMode: 'empty', selectedNodeId: null });
+      await session.saveToWorkspace(workspacePath);
+
+      return {
+        json: JSON.stringify(serializeDocument(mockResult.document)),
+        fileCount,
+        fromCache: false,
+        nodeCount: mockResult.diagnostics.nodeCount,
+        provider: 'mock-fallback',
+      };
+    }
+
+    // 5) Save to cache
+    session.patch({ workspaceRoot: workspacePath, semanticMap: result.document });
+    session.patchUI({ rightMode: 'empty', selectedNodeId: null });
+    await session.saveToWorkspace(workspacePath);
+
+    const serialized = serializeDocument(result.document);
+
+    return {
+      json: JSON.stringify(serialized),
+      fileCount,
+      fromCache: false,
+      nodeCount: result.diagnostics.nodeCount,
+      provider: providerName,
+    };
+  } catch (err) {
+    return { error: String(err) };
+  }
+});
+
 // ── App Lifecycle ───────────────────────────────────────
 
 app.whenReady().then(() => {

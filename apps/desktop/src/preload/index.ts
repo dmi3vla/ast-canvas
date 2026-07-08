@@ -35,6 +35,16 @@ const api = {
 
   setConfig: (key: string, value: unknown): Promise<{ success?: boolean; error?: string }> =>
     ipcRenderer.invoke('config:set', key, value),
+
+  // Semantic map pipeline
+  buildSemanticMap: (workspacePath: string, options?: { force?: boolean; useMock?: boolean }): Promise<{
+    json?: string;
+    fileCount?: number;
+    fromCache?: boolean;
+    nodeCount?: number;
+    provider?: string;
+    error?: string;
+  }> => ipcRenderer.invoke('workspace:buildSemanticMap', workspacePath, options),
 };
 
 // Expose in main world
