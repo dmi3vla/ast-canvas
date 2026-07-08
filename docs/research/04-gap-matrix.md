@@ -227,4 +227,4 @@ packages/ast-graph/
 | ADR-2: Layout | Split LEFT canvas \| RIGHT detail | ✅ Принято |
 | ADR-3: Renderer | Canvas2D (порт из Infinite Canvas) | ✅ Принято |
 | ADR-4: LLM Interface | Абстрактный провайдер + Mock | ✅ Принято |
-| ADR-5: AST Engine | Tree-sitter через ast-grep napi | ✅ Принято |
+| ADR-5: AST Engine | File-level imports first; ast-grep napi deferred → Phase 6+ | ✅ Принято (revised) |

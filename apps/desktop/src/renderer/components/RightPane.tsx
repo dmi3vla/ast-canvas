@@ -1,5 +1,6 @@
 import React from 'react';
-import type { RightMode, UIMockNode } from '../App';
+import type { RightMode } from '@infinity-canvas/detail-pane';
+import type { UIMockNode } from '../App';
 
 interface RightPaneProps {
   mode: RightMode;
@@ -163,27 +164,39 @@ export function RightPane({ mode, node, source, onSetMode, onOpenSource }: Right
       )}
 
       {/* Source mode */}
-      {mode === 'source' && source && (
+      {mode === 'source' && (
         <div className="right-pane__content">
-          <div className="source-view__header">
-            📄 {source.path} (line {source.line})
-          </div>
-          <div className="source-view">
-            {MOCK_SOURCE.split('\n').map((line, i) => {
-              const lineNum = i + 1;
-              const isHighlighted = lineNum === source.line;
-              return (
-                <div key={i} style={{ display: 'flex' }}>
-                  <span className={`source-view__line ${isHighlighted ? 'source-view__line--highlight' : ''}`}>
-                    {String(lineNum).padStart(3, ' ')}
-                  </span>
-                  <span style={{ color: isHighlighted ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                    {line}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {source ? (
+            <>
+              <div className="source-view__header">
+                📄 {source.path} (line {source.line})
+              </div>
+              <div className="source-view">
+                {MOCK_SOURCE.split('\n').map((line, i) => {
+                  const lineNum = i + 1;
+                  const isHighlighted = lineNum === source.line;
+                  return (
+                    <div key={i} style={{ display: 'flex' }}>
+                      <span className={`source-view__line ${isHighlighted ? 'source-view__line--highlight' : ''}`}>
+                        {String(lineNum).padStart(3, ' ')}
+                      </span>
+                      <span style={{ color: isHighlighted ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                        {line}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="right-pane__empty">
+              <div className="right-pane__empty-icon">📝</div>
+              <div className="right-pane__empty-text">No source file selected</div>
+              <div className="right-pane__empty-hint">
+                Click a location in <strong>Codemap</strong> mode to view source here.
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

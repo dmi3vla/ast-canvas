@@ -1,12 +1,26 @@
 import { app, BrowserWindow, shell, dialog, ipcMain } from 'electron';
-import { join } from 'path';
+import { join, resolve, normalize, relative } from 'path';
 import { is } from '@electron-toolkit/utils';
 import { readFile, writeFile, readdir, stat } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
-import { resolve } from 'path';
 
 let mainWindow: BrowserWindow | null = null;
 let lastWorkspacePath: string | null = null;
+
+// ── Path safety ─────────────────────────────────────────
+
+function isPathInWorkspace(filePath: string): boolean {
+  if (!lastWorkspacePath) return false;
+  const normalized = normalize(filePath);
+  const normalizedWs = normalize(lastWorkspacePath);
+  // Allow only paths within the workspace or app config dir
+  try {
+    const rel = relative(normalizedWs, normalized);
+    return !rel.startsWith('..') && !resolve(rel).startsWith('..');
+  } catch {
+    return false;
+  }
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -91,6 +105,9 @@ ipcMain.handle('workspace:listFiles', async (_event, dirPath: string) => {
 });
 
 ipcMain.handle('file:read', async (_event, filePath: string) => {
+  if (!isPathInWorkspace(filePath)) {
+    return { error: 'Access denied: file is outside the workspace' };
+  }
   try {
     const content = await readFile(filePath, 'utf-8');
     const stats = await stat(filePath);
@@ -101,6 +118,9 @@ ipcMain.handle('file:read', async (_event, filePath: string) => {
 });
 
 ipcMain.handle('file:write', async (_event, filePath: string, content: string) => {
+  if (!isPathInWorkspace(filePath)) {
+    return { error: 'Access denied: file is outside the workspace' };
+  }
   try {
     await writeFile(filePath, content, 'utf-8');
     return { success: true };

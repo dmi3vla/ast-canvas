@@ -3,13 +3,20 @@ import React, { useCallback, useRef, useEffect, useState } from 'react';
 interface SplitterProps {
   ratio: number;
   onRatioChange: (ratio: number) => void;
+  onDragEnd?: (ratio: number) => void;
 }
 
-export function Splitter({ ratio, onRatioChange }: SplitterProps) {
+export function Splitter({ ratio, onRatioChange, onDragEnd }: SplitterProps) {
   const [isDragging, setIsDragging] = useState(false);
   const splitterRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startRatioRef = useRef(0);
+  const currentRatioRef = useRef(ratio);
+
+  // Sync ref with prop
+  useEffect(() => {
+    currentRatioRef.current = ratio;
+  }, [ratio]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -34,6 +41,7 @@ export function Splitter({ ratio, onRatioChange }: SplitterProps) {
 
       // Clamp between 0.3 and 0.8
       const clamped = Math.max(0.3, Math.min(0.8, newRatio));
+      currentRatioRef.current = clamped;
       onRatioChange(clamped);
     },
     [isDragging, onRatioChange],
@@ -41,7 +49,9 @@ export function Splitter({ ratio, onRatioChange }: SplitterProps) {
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  }, []);
+    // Persist only on mouseup — avoid thrashing on every mousemove
+    onDragEnd?.(currentRatioRef.current);
+  }, [onDragEnd]);
 
   useEffect(() => {
     if (isDragging) {

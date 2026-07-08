@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-09  
-> Текущая фаза: **1 — Reverse Engineering** ✅
+> Текущая фаза: **2 — Electron Scaffold + Split Shell** (2.1–2.3 ✅, 2.4 ⏳)
 
 ---
 
@@ -31,7 +31,7 @@
 2. **ADR-2:** Split LEFT canvas | RIGHT detail (resizable, persist ratio)
 3. **ADR-3:** Canvas2D рендеринг (порт из Infinite Canvas)
 4. **ADR-4:** Абстрактный LLM интерфейс + Mock для dev/CI
-5. **ADR-5:** AST-grep (tree-sitter) как локальный движок зависимостей
+5. **ADR-5a:** File-level imports (regex/tsc) как локальный движок зависимостей (ast-grep deferred → Phase 6+)
 
 ---
 
@@ -69,7 +69,7 @@ infinity-canvas/
 │   ├── detail-pane/      # RIGHT: empty|content|codemap|source
 │   ├── schema/           # Zod types + validators
 │   ├── semantic/         # LLM context packer + codemap builder
-│   ├── ast-graph/        # AST deps via ast-grep
+│   ├── ast-graph/        # Workspace indexer + dep graph (file-level first)
 │   ├── ipc/              # Electron IPC contracts
 │   └── session/          # session state + cache
 ├── docs/

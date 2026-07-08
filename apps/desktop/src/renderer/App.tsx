@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import type { RightMode } from '@infinity-canvas/detail-pane';
 import { Toolbar } from './components/Toolbar';
 import { LeftPane } from './components/LeftPane';
 import { Splitter } from './components/Splitter';
 import { RightPane } from './components/RightPane';
 
-export type RightMode = 'empty' | 'content' | 'codemap' | 'source';
+export type { RightMode };
 
 export interface UIMockNode {
   id: string;
@@ -56,21 +57,34 @@ export function App() {
     fileCount: 0,
   });
 
-  // Load persisted ratio
+  // Load persisted ratio + auto-load last workspace
   useEffect(() => {
-    const loadRatio = async () => {
+    const loadPersisted = async () => {
       try {
         if (window.electronAPI) {
           const config = await window.electronAPI.getConfig('ui-settings') as { leftRatio?: number } | null;
           if (config?.leftRatio && typeof config.leftRatio === 'number') {
             setState(s => ({ ...s, leftRatio: config.leftRatio as number }));
           }
+
+          // Auto-load last workspace
+          const lastPath = await window.electronAPI.getLastWorkspace();
+          if (lastPath) {
+            const result = await window.electronAPI.listFiles(lastPath);
+            if (!result.error) {
+              setState(s => ({
+                ...s,
+                workspacePath: lastPath,
+                fileCount: result.files?.length ?? 0,
+              }));
+            }
+          }
         }
       } catch {
-        // use default
+        // use defaults
       }
     };
-    loadRatio();
+    loadPersisted();
   }, []);
 
   const handleSelectNode = useCallback((nodeId: string | null) => {
@@ -99,9 +113,13 @@ export function App() {
     }));
   }, []);
 
-  const handleSetRatio = useCallback(async (ratio: number) => {
+  const handleSetRatio = useCallback((ratio: number) => {
+    // Local-only update during drag (fast, no I/O)
     setState(s => ({ ...s, leftRatio: ratio }));
-    // Persist
+  }, []);
+
+  const handleDragEnd = useCallback(async (ratio: number) => {
+    // Persist only when drag ends (avoid thrashing)
     try {
       if (window.electronAPI) {
         await window.electronAPI.setConfig('ui-settings', { leftRatio: ratio });
@@ -159,8 +177,8 @@ export function App() {
             onSelectNode={handleSelectNode}
           />
         </div>
-        <Splitter ratio={state.leftRatio} onRatioChange={handleSetRatio} />
-        <div className="right-pane" style={{ flex: 1 }}>
+        <Splitter ratio={state.leftRatio} onRatioChange={handleSetRatio} onDragEnd={handleDragEnd} />
+        <div className="right-pane-shell" style={{ flex: 1 }}>
           <RightPane
             mode={state.rightMode}
             node={selectedNode}
