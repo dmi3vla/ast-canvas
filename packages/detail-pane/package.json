@@ -1,0 +1,21 @@
+{
+  "name": "@infinity-canvas/detail-pane",
+  "version": "0.0.0",
+  "private": true,
+  "description": "RIGHT detail pane: empty|content|codemap|source modes",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist/"
+  },
+  "dependencies": {
+    "@infinity-canvas/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

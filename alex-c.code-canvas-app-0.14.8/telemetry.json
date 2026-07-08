@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "enabled": true,
+  "respects_vscode_telemetry": true,
+  "events": [
+    "authentication_started",
+    "logout_started",
+    "user_authenticated",
+    "user_logged_out"
+  ],
+  "data_collected": [
+    "Anonymous session identifiers",
+    "Authentication events",
+    "VS Code and extension version"
+  ],
+  "data_not_collected": [
+    "File paths or names",
+    "Personal information (names, emails)",
+    "Session recordings",
+    "Source code content",
+    "User workspace content"
+  ],
+  "opt_out": [
+    "VS Code Settings: 'telemetry.telemetryLevel' = 'off'",
+    "Extension Settings: 'codeCanvas.telemetry.enabled' = false"
+  ],
+  "privacy_policy": "https://codecanvas.app/privacy"
+}

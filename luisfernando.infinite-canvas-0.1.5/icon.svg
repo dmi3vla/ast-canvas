@@ -1,0 +1,38 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Black background -->
+  <rect width="128" height="128" fill="#1a1a1a" rx="12"/>
+  
+  <!-- Arrowhead marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+            refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffffff" />
+    </marker>
+  </defs>
+  
+  <!-- Three circles -->
+  <!-- Circle 1 (top left) -->
+  <circle cx="40" cy="40" r="14" fill="#ffffff" stroke="none"/>
+  
+  <!-- Circle 2 (top right) -->
+  <circle cx="88" cy="40" r="14" fill="#ffffff" stroke="none"/>
+  
+  <!-- Circle 3 (bottom center) -->
+  <circle cx="64" cy="88" r="14" fill="#ffffff" stroke="none"/>
+  
+  <!-- Connecting arrows -->
+  <!-- Arrow from Circle 1 to Circle 2 -->
+  <line x1="54" y1="40" x2="74" y2="40" 
+        stroke="#ffffff" stroke-width="3" 
+        marker-end="url(#arrowhead)"/>
+  
+  <!-- Arrow from Circle 2 to Circle 3 -->
+  <line x1="82" y1="52" x2="70" y2="76" 
+        stroke="#ffffff" stroke-width="3" 
+        marker-end="url(#arrowhead)"/>
+  
+  <!-- Arrow from Circle 3 to Circle 1 -->
+  <line x1="52" y1="82" x2="46" y2="52" 
+        stroke="#ffffff" stroke-width="3" 
+        marker-end="url(#arrowhead)"/>
+</svg>

@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vendor (read-only research)
+!luisfernando.infinite-canvas-0.1.5/
+!alex-c.code-canvas-app-0.14.8/
+!source/
+!langgraph.codemap
+!cremniy_canvas.canvas
+
+# Session cache
+.infinity-canvas/

@@ -1,0 +1,213 @@
+{
+  "main": {
+    "id": "85527346f84795e4",
+    "type": "split",
+    "children": [
+      {
+        "id": "8c01945d8d97b567",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b8fc461c94451142",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "infinity_canvas_research.canvas",
+                "viewState": {
+                  "x": 664.142411487318,
+                  "y": -427.5565721496162,
+                  "zoom": 0.20000000000000018
+                }
+              },
+              "icon": "lucide-layout-dashboard",
+              "title": "infinity_canvas_research"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "2458782aa284dafc",
+    "type": "split",
+    "children": [
+      {
+        "id": "fadae48f9b20ce59",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b3f6784d914a35a0",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "4e704493dfc3961a",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Поиск"
+            }
+          },
+          {
+            "id": "2f94788c70627df9",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Закладки"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "89e3d2e46331e95a",
+    "type": "split",
+    "children": [
+      {
+        "id": "2022d04405f35da5",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "aff8da93890ed0c2",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "infinity_canvas_research.canvas",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Обратные ссылки для infinity_canvas_research"
+            }
+          },
+          {
+            "id": "4b4fbe5c25cbaf8c",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "infinity_canvas_research.canvas",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Исходящие ссылки из infinity_canvas_research"
+            }
+          },
+          {
+            "id": "971d6faceb877f99",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Теги"
+            }
+          },
+          {
+            "id": "b5abc60d6da91b6a",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Все свойства"
+            }
+          },
+          {
+            "id": "e1d998e4e195c2e5",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "infinity_canvas_research.canvas",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Структура infinity_canvas_research"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false
+    }
+  },
+  "active": "b8fc461c94451142",
+  "lastOpenFiles": [
+    "apps/desktop/out/preload/index.js",
+    "apps/desktop/out/preload",
+    "apps/desktop/out/main/index.js",
+    "apps/desktop/out/main",
+    "apps/desktop/out",
+    "apps/desktop/electron.vite.config.1783544997826.mjs",
+    "apps/desktop/package.json.1808545693",
+    "apps/desktop/node_modules/@electron-toolkit",
+    "pnpm-lock.yaml.672475039",
+    "_tmp_15777_9647d2629e553ab899073b1be88c1a64",
+    "_tmp_15274_a07f16a7e3d5699fcff0565baf776d99",
+    "fixtures/mini-project/README.md",
+    "README.md",
+    "revu.md",
+    "docs/STATUS.md",
+    "docs/research/04-gap-matrix.md",
+    "docs/research/03-code-canvas-extract.md",
+    "docs/research/02-codemap-schema.md",
+    "docs/research/01-infinite-canvas.md",
+    "AGENT_PLAN.md",
+    "cremniy_canvas.canvas"
+  ]
+}

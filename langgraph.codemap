@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 1,
+  "id": "______________________________ast-grep___________________________________AST_20260706_232607",
+  "stableId": "d99fc27a-f4ec-4960-8b0f-9835b5c6ba6f",
+  "metadata": {
+    "cascadeId": "bc1ff069-86f4-45c2-b656-5d18adfa3303",
+    "generationSource": "generationWithTraces",
+    "generationTimestamp": "2026-07-06T23:26:07+05:00",
+    "mode": "SMART",
+    "originalPrompt": "сформируй структурный инварианта плагина в синтаксический ast-grep"
+  },
+  "title": "Структурный инвариант плагина ast-grep: Архитектура парсинга и поиска по AST",
+  "traces": [
+    {
+      "id": "1",
+      "title": "Регистрация динамического языка Python",
+      "description": "Language Plugin System - показывает как языковой модуль предоставляет Tree-sitter парсер через динамическую загрузку библиотеки",
+      "locations": [
+        {
+          "id": "1a",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/lang-python/index.js",
+          "lineNumber": 22,
+          "lineContent": "  get libraryPath() {",
+          "title": "Точка входа: экспорт конфигурации языка",
+          "description": "Ленивая загрузка пути к парсеру при первом обращении"
+        },
+        {
+          "id": "1b",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/lang-python/index.js",
+          "lineNumber": 24,
+          "lineContent": "      libPath = getLibPath()",
+          "title": "Разрешение пути к библиотеке",
+          "description": "Вызов функции поиска скомпилированного парсера"
+        },
+        {
+          "id": "1c",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/setup-lang/index.js",
+          "lineNumber": 22,
+          "lineContent": "    const prebuild = resolvePrebuild(dir)",
+          "title": "Поиск prebuild версии",
+          "description": "Проверка наличия предскомпилированного парсера для платформы"
+        },
+        {
+          "id": "1d",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/setup-lang/index.js",
+          "lineNumber": 60,
+          "lineContent": "    const prebuild = node_path_1.default.join(dir, 'prebuilds', `prebuild-${os}-${arch}`, 'parser.so')",
+          "title": "Формирование пути к prebuild",
+          "description": "Конструирование пути на основе OS и архитектуры процессора"
+        },
+        {
+          "id": "1e",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/lang-python/index.js",
+          "lineNumber": 28,
+          "lineContent": "  extensions: ['py'],",
+          "title": "Конфигурация расширений файлов",
+          "description": "Определение какие файлы обрабатывает этот парсер"
+        },
+        {
+          "id": "1f",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/lang-python/index.js",
+          "lineNumber": 29,
+          "lineContent": "  languageSymbol: 'tree_sitter_python',",
+          "title": "Символ Tree-sitter парсера",
+          "description": "Имя функции в динамической библиотеке для загрузки грамматики"
+        },
+        {
+          "id": "1g",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/registerDynamicLang.d.ts",
+          "lineNumber": 27,
+          "lineContent": "export declare function registerDynamicLanguage(langs: DynamicLangRegistrations): void",
+          "title": "API регистрации в ast-grep",
+          "description": "Функция для регистрации всех языковых модулей в NAPI"
+        }
+      ],
+      "traceTextDiagram": "Регистрация языка Python в ast-grep\n├── Экспорт модуля lang-python\n│   ├── module.exports объект \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/lang-python/index.js:21\n│   │   ├── libraryPath getter \u003c-- 1a\n│   │   │   └── getLibPath() вызов \u003c-- 1b\n│   │   │       ├── resolvePrebuild() поиск \u003c-- 1c\n│   │   │       │   └── join(prebuilds/${os}-${arch}) \u003c-- 1d\n│   │   │       └── fallback: parser.so из src/ \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/lang-python/index.js:11\n│   │   ├── extensions: ['py'] \u003c-- 1e\n│   │   ├── languageSymbol: 'tree_sitter_python' \u003c-- 1f\n│   │   └── expandoChar: 'µ' \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/lang-python/index.js:30\n│   └── import в основной код\n│       └── registerDynamicLanguage(langs) \u003c-- 1g\n└── Tree-sitter парсер загружен\n    └── Язык готов для parse() и findInFiles()",
+      "traceGuide": "## Motivation\n\nast-grep нуждается в поддержке множества языков программирования (Python, Rust, Java, C++, и т.д.), но каждый язык требует своего **Tree-sitter парсера** — нативной библиотеки, скомпилированной под конкретную платформу. Проблема: как динамически загружать парсеры для разных языков и платформ (macOS ARM64, Linux x64, Windows) без включения всех бинарников в основной пакет?\n\nРешение — **модульная система языковых плагинов**, где каждый язык живет в отдельном npm-пакете (`@ast-grep/lang-python`, `@ast-grep/lang-rust`) с предскомпилированными парсерами для всех платформ.\n\n## Details\n\n### Структура языкового модуля\n\nКаждый языковой пакет экспортирует **конфигурационный объект** [1a] с четырьмя ключевыми полями:\n\n- **`libraryPath`** [1a] — ленивый getter, который при первом обращении ищет скомпилированный парсер [1b]\n- **`extensions`** [1e] — массив расширений файлов (например, `['py']` для Python)\n- **`languageSymbol`** [1f] — имя функции в динамической библиотеке (например, `tree_sitter_python`)\n- **`expandoChar`** — символ для метапеременных в паттернах (обычно `'µ'` или `'$'`)\n\n### Разрешение пути к парсеру\n\nСистема использует **двухуровневую стратегию** поиска парсера:\n\n1. **Prebuild** [1c]: проверяет наличие предскомпилированного парсера в `prebuilds/prebuild-${OS}-${ARCH}/parser.so` [1d], где OS и ARCH определяются из `process.platform` и `process.arch`\n\n2. **Fallback**: если prebuild не найден, ищет локально собранный `parser.so` в корне пакета\n\nЭто позволяет пакету работать \"из коробки\" на популярных платформах через prebuilds, но также поддерживать сборку из исходников для экзотических платформ.\n\n### Регистрация в ast-grep\n\nПосле импорта языковых модулей, они передаются в **`registerDynamicLanguage()`** [1g], которая регистрирует все парсеры в NAPI слое. После регистрации язык становится доступен для функций `parse()`, `parseAsync()`, и `findInFiles()` через строковый идентификатор (например, `'python'`).\n\nЭта архитектура позволяет ast-grep поддерживать **десятки языков** без раздувания размера основного пакета — пользователи устанавливают только нужные им языковые модули."
+    },
+    {
+      "id": "2",
+      "title": "Парсинг исходного кода в AST",
+      "description": "NAPI Core API - демонстрирует синхронный и асинхронный парсинг кода в синтаксическое дерево с возвратом корневого узла",
+      "locations": [
+        {
+          "id": "2a",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts",
+          "lineNumber": 11,
+          "lineContent": "export declare function parse\u003cM extends TypesMap\u003e(",
+          "title": "Синхронный парсинг кода",
+          "description": "Основная функция парсинга строки в AST дерево"
+        },
+        {
+          "id": "2b",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts",
+          "lineNumber": 14,
+          "lineContent": "): SgRoot\u003cM\u003e",
+          "title": "Возврат корневого объекта",
+          "description": "SgRoot представляет распарсенное дерево с типизацией"
+        },
+        {
+          "id": "2c",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts",
+          "lineNumber": 22,
+          "lineContent": "export declare function parseAsync\u003cM extends TypesMap\u003e(",
+          "title": "Асинхронный парсинг в потоках",
+          "description": "Многопоточный парсинг для обработки множества файлов"
+        },
+        {
+          "id": "2d",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 92,
+          "lineContent": "  root(): SgNode\u003cM, RootKind\u003cM\u003e\u003e",
+          "title": "Получение корневого узла AST",
+          "description": "Метод для доступа к корню синтаксического дерева"
+        },
+        {
+          "id": "2e",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 97,
+          "lineContent": "  filename(): string",
+          "title": "Получение имени файла",
+          "description": "Возвращает путь к файлу или 'anonymous' для строк"
+        }
+      ],
+      "traceTextDiagram": "API парсинга ast-grep\n├── Синхронный парсинг\n│   ├── parse(lang, src) \u003c-- 2a\n│   │   └── возвращает SgRoot\u003cM\u003e \u003c-- 2b\n│   │       └── root() метод \u003c-- 2d\n│   │           └── возвращает корневой SgNode \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts:92\n│   └── filename() метод \u003c-- 2e\n│       └── путь к файлу или \"anonymous\" \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts:95\n└── Асинхронный парсинг\n    └── parseAsync(lang, src) \u003c-- 2c\n        └── Promise\u003cSgRoot\u003cM\u003e\u003e \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts:25\n            └── многопоточная обработка \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts:17",
+      "traceGuide": "## Motivation\n\n**ast-grep** решает проблему структурного поиска и анализа кода. Вместо простого текстового поиска, который не понимает синтаксис языка, ast-grep парсит код в **синтаксическое дерево (AST)** и позволяет искать конструкции по их структуре. Это критично для задач рефакторинга, статического анализа и кодогенерации, где нужно точно находить функции, классы, импорты независимо от форматирования.\n\n## Details\n\n### Два режима парсинга\n\nAPI предоставляет **синхронный** и **асинхронный** парсинг [2a, 2c]. Синхронный `parse()` блокирует выполнение и подходит для разовой обработки одного файла. Асинхронный `parseAsync()` использует **многопоточность** для параллельной обработки множества файлов, что критично для производительности при анализе больших кодовых баз.\n\n### Объект SgRoot\n\nРезультат парсинга — объект `SgRoot\u003cM\u003e` [2b], который представляет **распарсенное дерево**. Тип `M` — это `TypesMap`, определяющий все возможные типы узлов для конкретного языка (JavaScript, Python, и т.д.). Это обеспечивает **типобезопасность** при работе с AST.\n\n### Доступ к дереву\n\nМетод `root()` возвращает **корневой узел** типа `SgNode` [2d], с которого начинается обход дерева. Для JavaScript это узел типа `program`, для Python — `module`. Метод `filename()` [2e] возвращает путь к исходному файлу или строку `\"anonymous\"` если код был распарсен из строки, а не из файла.\n\n### Типизация\n\nПараметр типа `M extends TypesMap` обеспечивает, что все операции с узлами **типизированы** в соответствии с грамматикой языка. Это позволяет TypeScript проверять корректность обращений к полям узлов на этапе компиляции."
+    },
+    {
+      "id": "3",
+      "title": "Поиск узлов по паттерну в AST",
+      "description": "NAPI Core API - показывает компиляцию паттерна и выполнение поиска с использованием правил (Rule) и конфигурации",
+      "locations": [
+        {
+          "id": "3a",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts",
+          "lineNumber": 32,
+          "lineContent": "export declare function pattern\u003cM extends TypesMap\u003e(",
+          "title": "Компиляция паттерна поиска",
+          "description": "Преобразование строки паттерна в объект NapiConfig"
+        },
+        {
+          "id": "3b",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 68,
+          "lineContent": "  find: NodeMethod\u003cM, [matcher: string | number | NapiConfig\u003cM\u003e]\u003e",
+          "title": "Поиск первого совпадения",
+          "description": "Метод узла для нахождения первого подходящего дочернего узла"
+        },
+        {
+          "id": "3c",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 69,
+          "lineContent": "  findAll\u003cK extends Kinds\u003cM\u003e\u003e(",
+          "title": "Поиск всех совпадений",
+          "description": "Возвращает массив всех узлов, соответствующих паттерну"
+        },
+        {
+          "id": "3d",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/config.d.ts",
+          "lineNumber": 11,
+          "lineContent": "  rule: Rule\u003cM\u003e",
+          "title": "Правило в конфигурации",
+          "description": "NapiConfig содержит Rule объект для определения критериев поиска"
+        },
+        {
+          "id": "3e",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/rule.d.ts",
+          "lineNumber": 56,
+          "lineContent": "  pattern?: PatternStyle\u003cM\u003e",
+          "title": "Паттерн в правиле",
+          "description": "Строка или объект паттерна для сопоставления кода"
+        },
+        {
+          "id": "3f",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/rule.d.ts",
+          "lineNumber": 58,
+          "lineContent": "  kind?: NamedKinds\u003cM\u003e",
+          "title": "Тип узла для поиска",
+          "description": "Имя типа AST узла (например, 'function_declaration')"
+        },
+        {
+          "id": "3g",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/rule.d.ts",
+          "lineNumber": 89,
+          "lineContent": "  all?: Array\u003cRule\u003cM\u003e\u003e",
+          "title": "Композиция правил через AND",
+          "description": "Комбинирование нескольких правил логическим И"
+        }
+      ],
+      "traceTextDiagram": "Система поиска узлов по паттерну в AST\n├── API компиляции паттерна\n│   └── pattern() компилирует строку \u003c-- 3a\n│       └── возвращает NapiConfig \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts:35\n│           └── содержит rule: Rule\u003cM\u003e \u003c-- 3d\n│               ├── pattern?: PatternStyle \u003c-- 3e\n│               ├── kind?: NamedKinds \u003c-- 3f\n│               └── all?: Array\u003cRule\u003e для AND \u003c-- 3g\n├── API поиска на узле\n│   ├── find() первое совпадение \u003c-- 3b\n│   │   └── принимает matcher: NapiConfig \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts:68\n│   └── findAll() все совпадения \u003c-- 3c\n│       └── возвращает Array\u003cSgNode\u003e \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts:71\n└── Типизация результатов\n    └── RefineNode\u003cM, K\u003e с типом узла \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts:109",
+      "traceGuide": "# Motivation\n\nКогда вы работаете с исходным кодом программно, вам нужен способ **найти конкретные конструкции** в синтаксическом дереве. Например, найти все функции с определенным именем, или все импорты из конкретного модуля. Простой текстовый поиск не подходит, потому что он не понимает структуру кода. ast-grep решает эту проблему, предоставляя **систему поиска по паттернам**, которая работает на уровне AST узлов, а не строк.\n\n# Details\n\n## Компиляция паттерна\n\nСистема начинается с функции `pattern()` [3a], которая **компилирует строку паттерна** в объект `NapiConfig`. Этот объект содержит `Rule` [3d] — структуру данных, описывающую критерии поиска.\n\n## Структура правил\n\n`Rule` поддерживает несколько способов описания того, что искать:\n- **`pattern`** [3e] — строка кода-шаблона с метапеременными (например, `function $NAME() {}`)\n- **`kind`** [3f] — тип AST узла по имени (например, `'function_declaration'`, `'import_statement'`)\n- **`all`** [3g] — массив правил, которые должны совпадать одновременно (логическое И)\n\nПравила также поддерживают `regex` для текстового поиска, `any` для логического ИЛИ, и реляционные операторы (`inside`, `has`, `precedes`, `follows`).\n\n## Выполнение поиска\n\nПосле компиляции паттерна, вы вызываете методы поиска на узлах AST:\n- **`find()`** [3b] возвращает первое совпадение\n- **`findAll()`** [3c] возвращает массив всех совпадений\n\nОба метода принимают `matcher` — это может быть строка паттерна, число (kind ID), или скомпилированный `NapiConfig`.\n\n## Типизация\n\nРезультаты поиска возвращаются как `SgNode` объекты, обернутые в тип `RefineNode\u003cM, K\u003e`, который сохраняет информацию о **конкретном типе найденного узла** для type safety в TypeScript."
+    },
+    {
+      "id": "4",
+      "title": "Навигация и обход AST дерева",
+      "description": "NAPI Core API - демонстрирует методы навигации по узлам: дочерние элементы, родители, именованные поля",
+      "locations": [
+        {
+          "id": "4a",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 67,
+          "lineContent": "  children(): Array\u003cSgNode\u003cM\u003e\u003e",
+          "title": "Получение дочерних узлов",
+          "description": "Возвращает все прямые потомки текущего узла"
+        },
+        {
+          "id": "4b",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 73,
+          "lineContent": "  field\u003cF extends FieldNames\u003cM[T]\u003e\u003e(name: F): FieldNode\u003cM, T, F\u003e",
+          "title": "Доступ к именованному полю",
+          "description": "Получение дочернего узла по имени поля (например, 'name', 'body')"
+        },
+        {
+          "id": "4c",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 78,
+          "lineContent": "  parent: NodeMethod\u003cM\u003e",
+          "title": "Навигация к родителю",
+          "description": "Переход к родительскому узлу в дереве"
+        },
+        {
+          "id": "4d",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 81,
+          "lineContent": "  ancestors(): Array\u003cSgNode\u003cM\u003e\u003e",
+          "title": "Получение всех предков",
+          "description": "Массив всех родительских узлов до корня"
+        },
+        {
+          "id": "4e",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 55,
+          "lineContent": "  kind(): T",
+          "title": "Получение типа узла",
+          "description": "Возвращает строковое имя типа узла (kind)"
+        },
+        {
+          "id": "4f",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts",
+          "lineNumber": 48,
+          "lineContent": "  text(): string",
+          "title": "Извлечение текста узла",
+          "description": "Получение исходного кода, соответствующего узлу"
+        }
+      ],
+      "traceTextDiagram": "SgNode - Узел синтаксического дерева \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts:38\n├── Навигация вниз (к потомкам)\n│   ├── children() \u003c-- 4a\n│   │   └── Возвращает Array\u003cSgNode\u003cM\u003e\u003e\n│   ├── field(name) \u003c-- 4b\n│   │   └── Доступ по имени поля\n│   │       └── FieldNames\u003cM[T]\u003e из TypesMap \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/staticTypes.d.ts:39\n│   └── child(nth) \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/sgnode.d.ts:79\n│       └── Доступ по индексу\n├── Навигация вверх (к предкам)\n│   ├── parent() \u003c-- 4c\n│   │   └── Возвращает родительский узел\n│   └── ancestors() \u003c-- 4d\n│       └── Массив всех предков до корня\n└── Информация об узле\n    ├── kind() \u003c-- 4e\n    │   └── Тип узла (string)\n    └── text() \u003c-- 4f\n        └── Исходный код узла",
+      "traceGuide": "## Motivation\n\nПри работе с абстрактными синтаксическими деревьями (AST) необходимо **перемещаться между узлами** для анализа структуры кода. Класс `SgNode` в ast-grep предоставляет типобезопасный API для навигации по дереву в любом направлении: к дочерним элементам, родителям, или именованным полям узла.\n\nПроблема: парсер создает дерево из тысяч узлов, и нужен **эффективный способ обхода** этой структуры, чтобы найти нужные элементы кода (например, все параметры функции или тело класса).\n\n## Details\n\n### Навигация вниз по дереву\n\n**`children()`** [4a] возвращает массив всех прямых потомков узла. Это универсальный метод для обхода дерева вширь.\n\n**`field(name)`** [4b] предоставляет доступ к **именованным полям** узла, определенным в грамматике языка. Например, у `function_definition` есть поля `name`, `parameters`, и `body`. Это типобезопасный способ получить конкретную часть синтаксической конструкции.\n\nИмена полей извлекаются из `TypesMap` через тип `FieldNames\u003cM[T]\u003e`, который автоматически предоставляет автодополнение в TypeScript.\n\n**`child(nth)`** позволяет получить дочерний узел по числовому индексу для последовательного обхода.\n\n### Навигация вверх по дереву\n\n**`parent()`** [4c] возвращает родительский узел, позволяя двигаться вверх по дереву. Это необходимо для понимания контекста: например, чтобы определить, находится ли переменная внутри функции или класса.\n\n**`ancestors()`** [4d] возвращает **весь путь от текущего узла до корня** дерева в виде массива. Полезно для анализа вложенности и области видимости.\n\n### Информация об узле\n\n**`kind()`** [4e] возвращает строковое имя типа узла (например, `\"import_statement\"`, `\"function_declaration\"`). Это основной способ определить, с каким синтаксическим элементом вы работаете.\n\n**`text()`** [4f] извлекает исходный код, соответствующий узлу. Возвращает точную подстроку из файла, включая все пробелы и комментарии.\n\nВсе методы навигации **типобезопасны**: TypeScript знает, какие поля доступны для каждого типа узла, предотвращая ошибки на этапе компиляции."
+    },
+    {
+      "id": "5",
+      "title": "Типизация языковых конструкций JavaScript",
+      "description": "Type System - показывает как определяется структура AST узлов для языка с полями, подтипами и корневым узлом",
+      "locations": [
+        {
+          "id": "5a",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts",
+          "lineNumber": 2,
+          "lineContent": "type JavaScriptTypes = {",
+          "title": "Карта типов JavaScript AST",
+          "description": "TypesMap определяет все возможные типы узлов для языка"
+        },
+        {
+          "id": "5b",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts",
+          "lineNumber": 963,
+          "lineContent": "    \"type\": \"export_statement\",",
+          "title": "Определение export_statement",
+          "description": "Тип узла для экспорта модулей ES6"
+        },
+        {
+          "id": "5c",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts",
+          "lineNumber": 966,
+          "lineContent": "      \"declaration\": {",
+          "title": "Поле declaration в export",
+          "description": "Именованное поле содержит декларацию экспортируемого элемента"
+        },
+        {
+          "id": "5d",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts",
+          "lineNumber": 1540,
+          "lineContent": "    \"type\": \"import_statement\",",
+          "title": "Определение import_statement",
+          "description": "Тип узла для импорта модулей ES6"
+        },
+        {
+          "id": "5e",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts",
+          "lineNumber": 2227,
+          "lineContent": "    \"type\": \"program\",",
+          "title": "Корневой узел program",
+          "description": "Верхний уровень AST дерева для JavaScript файла"
+        },
+        {
+          "id": "5f",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts",
+          "lineNumber": 2229,
+          "lineContent": "    \"root\": true,",
+          "title": "Маркер корневого узла",
+          "description": "Флаг указывает что это корень синтаксического дерева"
+        },
+        {
+          "id": "5g",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/staticTypes.d.ts",
+          "lineNumber": 35,
+          "lineContent": "export interface TypesMap {",
+          "title": "Интерфейс TypesMap",
+          "description": "Базовый интерфейс для карты типов любого языка"
+        }
+      ],
+      "traceTextDiagram": "JavaScript AST Type System\n├── JavaScriptTypes карта \u003c-- 5a\n│   ├── Узлы операторов (statements) \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts:238\n│   │   ├── export_statement \u003c-- 5b\n│   │   │   └── fields \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts:965\n│   │   │       └── declaration поле \u003c-- 5c\n│   │   └── import_statement \u003c-- 5d\n│   │       └── fields \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts:1542\n│   │           └── source: string (required) \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts:1543\n│   └── Корневой узел\n│       └── program \u003c-- 5e\n│           ├── root: true флаг \u003c-- 5f\n│           └── children: statement[] \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/lang/JavaScript.d.ts:2231\n└── Базовый интерфейс\n    └── TypesMap \u003c-- 5g\n        └── [key: string]: NodeType \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/staticTypes.d.ts:36",
+      "traceGuide": "# Motivation\n\nКогда ast-grep парсит код на разных языках программирования, ему нужно **знать структуру AST узлов** для каждого языка: какие типы узлов существуют (например, `function_declaration`, `import_statement`), какие поля они содержат (например, `name`, `body`, `parameters`), и как эти узлы связаны друг с другом. Без этой информации невозможно было бы писать типобезопасные запросы к AST или получать доступ к именованным полям узлов.\n\nСистема типов решает эту проблему через **статическую карту типов** [5a] — TypeScript интерфейс, который описывает полную грамматику языка в виде структурированных метаданных, автоматически сгенерированных из Tree-sitter парсера.\n\n# Details\n\n## Структура TypesMap\n\nКаждый язык экспортирует объект типа `TypesMap` [5g], который представляет собой словарь `[key: string]: NodeType`. Ключи — это имена типов узлов или категорий (например, `\"statement\"`, `\"expression\"`), а значения — объекты `NodeType` с метаданными.\n\n## Определение узлов\n\nДля JavaScript определена карта `JavaScriptTypes` [5a], содержащая все типы узлов языка. Например, `export_statement` [5b] описывает ES6 экспорты с полями [5c]:\n- **`declaration`** — что экспортируется (класс, функция, переменная)\n- **`source`** — откуда реэкспортируется (для `export ... from`)\n- **`decorator`** — декораторы (если есть)\n\nАналогично, `import_statement` [5d] описывает импорты с обязательным полем `source` — строкой пути к модулю.\n\n## Корневой узел\n\nКаждый язык имеет **корневой узел** с флагом `root: true` [5f]. Для JavaScript это `program` [5e] — верхний уровень файла, содержащий массив операторов (`statement[]`) как дочерние элементы.\n\n## Поля и подтипы\n\nУзлы могут иметь:\n- **`fields`** — именованные дочерние элементы (например, `name`, `parameters` у функции)\n- **`children`** — неименованные дочерние элементы\n- **`subtypes`** — категории узлов (например, `statement` включает `import_statement`, `export_statement`, и др.)\n\nКаждое поле указывает `required` (обязательность), `multiple` (массив или одиночное значение), и `types` (допустимые типы узлов).\n\n## Использование в API\n\nЭти типы используются для **типобезопасности** в TypeScript: когда вы вызываете `node.field('name')` или `node.kind()`, TypeScript знает какие поля и типы допустимы для данного узла, предотвращая ошибки на этапе компиляции."
+    },
+    {
+      "id": "6",
+      "title": "Массовый поиск в файлах проекта",
+      "description": "NAPI Core API - демонстрирует рекурсивный поиск по файлам с фильтрацией по glob паттернам и callback обработкой результатов",
+      "locations": [
+        {
+          "id": "6a",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts",
+          "lineNumber": 42,
+          "lineContent": "export declare function findInFiles\u003cM extends TypesMap\u003e(",
+          "title": "Поиск по множеству файлов",
+          "description": "Рекурсивный поиск узлов в файловой системе"
+        },
+        {
+          "id": "6b",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/config.d.ts",
+          "lineNumber": 30,
+          "lineContent": "  paths: Array\u003cstring\u003e",
+          "title": "Пути для рекурсивного поиска",
+          "description": "FindConfig определяет директории для сканирования"
+        },
+        {
+          "id": "6c",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/config.d.ts",
+          "lineNumber": 32,
+          "lineContent": "  matcher: NapiConfig\u003cM\u003e",
+          "title": "Конфигурация поиска",
+          "description": "Правила для определения какие узлы искать"
+        },
+        {
+          "id": "6d",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/config.d.ts",
+          "lineNumber": 38,
+          "lineContent": "  languageGlobs?: Array\u003cstring\u003e",
+          "title": "Фильтрация по расширениям",
+          "description": "Glob паттерны для выбора файлов (например, '*.vue', '*.ts')"
+        },
+        {
+          "id": "6e",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts",
+          "lineNumber": 45,
+          "lineContent": "  callback: (err: null | Error, result: SgNode\u003cM\u003e[]) =\u003e void,",
+          "title": "Callback обработки результатов",
+          "description": "Функция вызывается для каждого файла с найденными узлами"
+        },
+        {
+          "id": "6f",
+          "path": "/home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts",
+          "lineNumber": 46,
+          "lineContent": "): Promise\u003cnumber\u003e",
+          "title": "Возврат количества файлов",
+          "description": "Promise разрешается в число обработанных файлов"
+        }
+      ],
+      "traceTextDiagram": "Массовый поиск в файлах проекта (findInFiles)\n├── API точка входа\n│   └── findInFiles\u003cM\u003e() \u003c-- 6a\n│       ├── lang: NapiLang (язык парсинга) \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/api.d.ts:43\n│       ├── config: FindConfig\u003cM\u003e\n│       │   ├── paths: Array\u003cstring\u003e \u003c-- 6b\n│       │   ├── matcher: NapiConfig\u003cM\u003e \u003c-- 6c\n│       │   │   └── rule: Rule\u003cM\u003e (критерии поиска) \u003c-- /home/resu/Documents/dev/alex-c.code-canvas-app-0.14.8/node_modules/@ast-grep/napi/types/config.d.ts:11\n│       │   └── languageGlobs?: Array\u003cstring\u003e \u003c-- 6d\n│       └── callback функция \u003c-- 6e\n│           ├── err: null | Error\n│           └── result: SgNode\u003cM\u003e[] (найденные узлы)\n└── Возвращаемое значение\n    └── Promise\u003cnumber\u003e \u003c-- 6f\n        └── (количество обработанных файлов)",
+      "traceGuide": "# Motivation\n\n**Проблема**: При работе с большими кодовыми базами необходимо находить все вхождения определенных синтаксических конструкций (например, все функции с определенной сигнатурой, все импорты конкретного модуля) в сотнях или тысячах файлов. Простой текстовый поиск не подходит, так как не понимает структуру кода.\n\n**Решение**: `findInFiles` [6a] выполняет **структурный поиск по AST** - рекурсивно обходит директории, парсит каждый файл в синтаксическое дерево и находит узлы, соответствующие заданному паттерну. Это позволяет искать по семантике кода, а не по тексту.\n\n# Details\n\n## Конфигурация поиска\n\nФункция принимает три параметра:\n- **Язык парсинга** - определяет какой Tree-sitter парсер использовать\n- **FindConfig** - объект конфигурации с тремя ключевыми полями\n- **Callback** - функция для обработки результатов\n\n## Структура FindConfig\n\n**paths** [6b] - массив путей к директориям для рекурсивного сканирования. Функция обходит все файлы в этих директориях и поддиректориях.\n\n**matcher** [6c] - содержит `NapiConfig` с правилами поиска. Внутри находится объект `rule` [6c], который определяет критерии совпадения через паттерны, типы узлов (kind), регулярные выражения и композицию правил.\n\n**languageGlobs** [6d] - опциональные glob-паттерны для фильтрации файлов по расширению (например, `['*.vue', '*.ts']`). Это позволяет применять парсер к нестандартным расширениям файлов.\n\n## Обработка результатов\n\n**Callback** [6e] вызывается для каждого обработанного файла и получает массив найденных узлов `SgNode\u003cM\u003e[]`. Это позволяет обрабатывать результаты потоково, не загружая все в память сразу.\n\nФункция возвращает **Promise\u003cnumber\u003e** [6f] - количество обработанных файлов, что полезно для отслеживания прогресса и статистики.\n\n## Преимущества\n\nВся тяжелая работа (обход файловой системы, парсинг, сопоставление) выполняется **в нативном коде Rust**, что обеспечивает высокую производительность при работе с большими проектами."
+    }
+  ],
+  "description": "Карта показывает модульную систему ast-grep для VSCode, состоящую из трех основных компонентов: динамической регистрации языков через Tree-sitter, API парсинга и поиска, и типизированной системы навигации по AST. Ключевые точки входа: регистрация языка [1b], парсинг кода [2a], поиск по паттерну [3a], и определение типов узлов [5a].",
+  "mermaidDiagram": "graph TB\n    subgraph LangPlugin[\"Language Plugin System\"]\n        1a[\"1a: libraryPath getter\u003cbr/\u003eLazy load parser path\"]\n        1b[\"1b: getLibPath()\u003cbr/\u003eResolve library\"]\n        1c[\"1c: resolvePrebuild\u003cbr/\u003eFind prebuilt parser\"]\n        1d[\"1d: Prebuild path\u003cbr/\u003ePlatform-specific\"]\n        1e[\"1e: extensions config\u003cbr/\u003eFile type mapping\"]\n        1f[\"1f: languageSymbol\u003cbr/\u003eTree-sitter symbol\"]\n        1g[\"1g: registerDynamicLanguage\u003cbr/\u003eRegister in NAPI\"]\n        \n        1a --\u003e 1b\n        1b --\u003e 1c\n        1c --\u003e 1d\n        1a -.-\u003e 1e\n        1a -.-\u003e 1f\n        1e --\u003e 1g\n        1f --\u003e 1g\n    end\n    \n    subgraph NapiCore[\"NAPI Core API\"]\n        2a[\"2a: parse function\u003cbr/\u003eSynchronous parsing\"]\n        2b[\"2b: SgRoot return\u003cbr/\u003eTyped tree root\"]\n        2c[\"2c: parseAsync\u003cbr/\u003eMulti-threaded parsing\"]\n        2d[\"2d: root() method\u003cbr/\u003eGet root node\"]\n        2e[\"2e: filename()\u003cbr/\u003eGet source file\"]\n        3a[\"3a: pattern function\u003cbr/\u003eCompile pattern\"]\n        3b[\"3b: find method\u003cbr/\u003eFirst match\"]\n        3c[\"3c: findAll method\u003cbr/\u003eAll matches\"]\n        3d[\"3d: NapiConfig\u003cbr/\u003eSearch config\"]\n        3e[\"3e: Rule pattern\u003cbr/\u003ePattern definition\"]\n        3f[\"3f: kind field\u003cbr/\u003eNode type filter\"]\n        3g[\"3g: all combinator\u003cbr/\u003eAND composition\"]\n        \n        2a --\u003e 2b\n        2c -.-\u003e 2b\n        2b --\u003e 2d\n        2b --\u003e 2e\n        3a --\u003e 3e\n        3e --\u003e 3f\n        3e --\u003e 3g\n        3e --\u003e 3d\n        3d --\u003e 3b\n        3d --\u003e 3c\n    end\n    \n    subgraph TypeSys[\"Type System\"]\n        5a[\"5a: JavaScriptTypes\u003cbr/\u003eAST type map\"]\n        5b[\"5b: export_statement\u003cbr/\u003eExport node type\"]\n        5d[\"5d: import_statement\u003cbr/\u003eImport node type\"]\n        5e[\"5e: program node\u003cbr/\u003eRoot type\"]\n        5f[\"5f: root flag\u003cbr/\u003eTree root marker\"]\n        5g[\"5g: TypesMap interface\u003cbr/\u003eType contract\"]\n        \n        5a --\u003e 5b\n        5a --\u003e 5d\n        5a --\u003e 5e\n        5e --\u003e 5f\n        5g -.-\u003e 5a\n    end\n    \n    subgraph Navigation[\"Node Navigation\"]\n        4a[\"4a: children()\u003cbr/\u003eGet child nodes\"]\n        4b[\"4b: field()\u003cbr/\u003eNamed field access\"]\n        4c[\"4c: parent\u003cbr/\u003eParent navigation\"]\n        4d[\"4d: ancestors()\u003cbr/\u003eAll ancestors\"]\n        4e[\"4e: kind()\u003cbr/\u003eGet node type\"]\n        4f[\"4f: text()\u003cbr/\u003eExtract source\"]\n        \n        4a -.-\u003e 4e\n        4b -.-\u003e 4e\n        4c --\u003e 4d\n    end\n    \n    subgraph FileSearch[\"File Search\"]\n        6a[\"6a: findInFiles\u003cbr/\u003eRecursive search\"]\n        6b[\"6b: paths config\u003cbr/\u003eDirectories\"]\n        6c[\"6c: matcher config\u003cbr/\u003eSearch rules\"]\n        6d[\"6d: languageGlobs\u003cbr/\u003eFile filtering\"]\n        6e[\"6e: callback\u003cbr/\u003eResult handler\"]\n        6f[\"6f: Promise result\u003cbr/\u003eFile count\"]\n        \n        6b --\u003e 6a\n        6c --\u003e 6a\n        6d --\u003e 6a\n        6a --\u003e 6e\n        6a --\u003e 6f\n    end\n    \n    1g --\u003e|enables| 2a\n    2a --\u003e|parses with| 5a\n    2d --\u003e|returns| 4a\n    2d --\u003e|returns| 4b\n    2d --\u003e|returns| 4c\n    2d --\u003e|returns| 4e\n    3a --\u003e|uses| 5a\n    3b --\u003e|searches with| 3d\n    3c --\u003e|searches with| 3d\n    4b --\u003e|accesses via| 5g\n    6a --\u003e|internally uses| 2a\n    6c --\u003e|contains| 3d\n    \n    style LangPlugin fill:#fcc2d7\n    style NapiCore fill:#a5d8ff\n    style TypeSys fill:#ffec99\n    style Navigation fill:#b2f2bb\n    style FileSearch fill:#ffd8a8"
+}

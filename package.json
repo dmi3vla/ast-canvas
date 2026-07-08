@@ -1,0 +1,19 @@
+{
+  "name": "infinity-canvas",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Infinity Canvas — Electron Split App: LEFT semantic canvas | RIGHT detail pane",
+  "scripts": {
+    "dev": "pnpm --filter @infinity-canvas/desktop dev",
+    "build": "pnpm --filter @infinity-canvas/desktop build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean"
+  },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@11.10.0"
+}
