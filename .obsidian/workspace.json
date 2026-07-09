@@ -15,9 +15,9 @@
               "state": {
                 "file": "infinity_canvas_research.canvas",
                 "viewState": {
-                  "x": 664.142411487318,
-                  "y": -427.5565721496162,
-                  "zoom": 0.20000000000000018
+                  "x": 1921.5891665911288,
+                  "y": 188.39897797445678,
+                  "zoom": -0.20000000000000084
                 }
               },
               "icon": "lucide-layout-dashboard",
@@ -188,6 +188,8 @@
   },
   "active": "b8fc461c94451142",
   "lastOpenFiles": [
+    "packages/semantic/tests/enrichCodemap.test.ts",
+    "packages/semantic/src/enrichCodemap.ts",
     "apps/desktop/out/preload/index.js",
     "apps/desktop/out/preload",
     "apps/desktop/out/main/index.js",
@@ -197,8 +199,6 @@
     "apps/desktop/package.json.1808545693",
     "apps/desktop/node_modules/@electron-toolkit",
     "pnpm-lock.yaml.672475039",
-    "_tmp_15777_9647d2629e553ab899073b1be88c1a64",
-    "_tmp_15274_a07f16a7e3d5699fcff0565baf776d99",
     "fixtures/mini-project/README.md",
     "README.md",
     "revu.md",

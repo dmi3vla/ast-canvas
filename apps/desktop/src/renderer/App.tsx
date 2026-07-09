@@ -110,6 +110,7 @@ export function App() {
   }, [buildMap]);
 
   const handleSelectNode = useCallback((nodeId: string | null) => {
+    canvasRef.current?.clearHighlight();
     const node = nodeId
       ? (canvasRef.current?.state.getNodeById(nodeId) ?? null)
       : null;
@@ -261,11 +262,16 @@ export function App() {
           handleSelectNode(null);
           return s;
         });
+        canvasRef.current?.clearHighlight();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSelectNode]);
+
+  const handleSelectTrace = useCallback((paths: string[]) => {
+    canvasRef.current?.setHighlight(paths);
+  }, []);
 
   return (
     <div className="app-shell">
@@ -303,6 +309,7 @@ export function App() {
             ].filter(Boolean) as string[]}
             onSetMode={handleSetRightMode}
             onOpenSource={handleOpenSource}
+            onSelectTrace={handleSelectTrace}
             onBack={handleNavBack}
             canGoBack={state.navStack.length > 0}
           />

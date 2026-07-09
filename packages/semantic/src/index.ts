@@ -11,3 +11,6 @@ export { buildSemanticMap } from './buildSemanticMap';
 export type { SemanticMapResult } from './buildSemanticMap';
 
 export { SYSTEM_CODEMAP, EXAMPLE_CODEMAP_MINI, buildCodemapUserPrompt, projectCodemapToCanvas } from './prompts';
+
+export { enrichCodemap } from './enrichCodemap';
+export type { EnrichInput, EnrichResult } from './enrichCodemap';

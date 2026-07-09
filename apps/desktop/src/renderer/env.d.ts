@@ -46,6 +46,7 @@ interface ElectronAPI {
     summary?: string;
     fileAnchors?: string[];
     force?: boolean;
+    enrich?: boolean;
   }) => Promise<{
     codemap?: {
       title: string;
@@ -57,6 +58,7 @@ interface ElectronAPI {
       }[];
     };
     fromCache?: boolean;
+    enriched?: boolean;
     error?: string;
     needsWorkspace?: boolean;
   }>;

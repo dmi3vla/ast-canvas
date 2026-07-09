@@ -10,8 +10,10 @@ import {
   buildNodeCodemap,
   saveNodeCodemap,
   loadNodeCodemap,
+  saveEnrichedCodemap,
+  loadEnrichedCodemap,
 } from '@infinity-canvas/ast-graph';
-import { contextPacker, createProvider, MockLLMProvider, buildSemanticMap } from '@infinity-canvas/semantic';
+import { contextPacker, createProvider, MockLLMProvider, buildSemanticMap, enrichCodemap } from '@infinity-canvas/semantic';
 import { serializeDocument } from '@infinity-canvas/schema';
 import { SessionStore } from '@infinity-canvas/session';
 
@@ -343,29 +345,69 @@ ipcMain.handle(
       summary?: string;
       fileAnchors?: string[];
       force?: boolean;
+      enrich?: boolean;
     },
   ) => {
     try {
       if (!lastWorkspacePath) return { error: 'No workspace open', needsWorkspace: true };
 
-      const { nodeId, text, summary, fileAnchors = [], force } = payload;
-      if (!force) {
+      const { nodeId, text, summary, fileAnchors = [], force, enrich } = payload;
+
+      // Cache: for non-enrich, prefer enriched if exists; else structural
+      if (!force && !enrich) {
+        const enrichedCached = await loadEnrichedCodemap(lastWorkspacePath, nodeId);
+        if (enrichedCached) return { codemap: enrichedCached, fromCache: true, enriched: true };
         const cached = await loadNodeCodemap(lastWorkspacePath, nodeId);
         if (cached) return { codemap: cached, fromCache: true };
       }
 
       const g = await depGraphService.getGraph(lastWorkspacePath);
-      const codemap = buildNodeCodemap(
-        {
-          id: nodeId,
-          text,
-          semantic: { summary, fileAnchors, kind: 'area' },
-        },
+      let codemap = buildNodeCodemap(
+        { id: nodeId, text, semantic: { summary, fileAnchors, kind: 'area' } },
         g,
         lastWorkspacePath,
       );
+
+      // Cache structural immediately (don't wait for enrich)
       await saveNodeCodemap(lastWorkspacePath, nodeId, codemap);
-      return { codemap, fromCache: false };
+
+      // LLM Enrich
+      if (enrich) {
+        // Build neighborhood: only files reachable from anchors (depth 2)
+        const anchorSet = new Set(fileAnchors.map(a => a.replace(/\\/g, '/')));
+        const centers = Object.keys(g.nodes).filter(
+          id => fileAnchors.some((a: string) => id.endsWith(a) || a.endsWith(id)),
+        );
+        const neighborhood = new Set<string>([
+          ...fileAnchors,
+          ...centers,
+          ...g.edges
+            .filter(e => centers.includes(e.from) || centers.includes(e.to))
+            .flatMap(e => [e.from, e.to]),
+        ].filter(p => !p.startsWith('external:')));
+
+        // Pack only neighborhood files
+        const allFiles = await indexWorkspace(lastWorkspacePath);
+        const neighborhoodFiles = allFiles.filter(f => neighborhood.has(f.path.replace(/\\/g, '/')));
+        const pack = await contextPacker(
+          neighborhoodFiles.length > 0 ? neighborhoodFiles : allFiles,
+          async (p) => readFile(p, 'utf-8'),
+          { budgetChars: 30_000 },
+        );
+        const llm = createProvider();
+
+        const result = await enrichCodemap({
+          structural: codemap,
+          pack,
+          llm,
+          allowedPaths: [...neighborhood],
+        });
+
+        codemap = result.codemap;
+        await saveEnrichedCodemap(lastWorkspacePath, nodeId, codemap);
+      }
+
+      return { codemap, fromCache: false, enriched: !!enrich };
     } catch (err) {
       return { error: String(err) };
     }

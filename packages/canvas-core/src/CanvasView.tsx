@@ -9,6 +9,8 @@ export interface CanvasViewHandle {
   loadData: (json: string) => void;
   exportData: () => string;
   fitView: () => void;
+  setHighlight: (paths: string[]) => void;
+  clearHighlight: () => void;
 }
 
 interface CanvasViewProps {
@@ -121,6 +123,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
         rendererRef.current.resize();
         stateRef.current.fitView(canvas.width, canvas.height);
         rendererRef.current.render(stateRef.current);
+      },
+      setHighlight: (paths: string[]) => {
+        stateRef.current.setHighlight(paths);
+      },
+      clearHighlight: () => {
+        stateRef.current.clearHighlight();
       },
     }), []);
 

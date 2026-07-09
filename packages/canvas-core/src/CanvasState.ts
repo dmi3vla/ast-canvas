@@ -8,6 +8,7 @@ export class CanvasState {
   nodes: ICNode[] = [];
   edges: ICEdge[] = [];
   selectedNodeIds: Set<string> = new Set();
+  highlightNodeIds: Set<string> = new Set();
 
   // Viewport
   offsetX = 0;
@@ -20,6 +21,33 @@ export class CanvasState {
   // Callbacks
   onStateChange: StateChangeCallback | null = null;
   onSelectionChange: SelectionChangeCallback | null = null;
+
+  // ── Highlight ────────────────────────────────────────
+
+  /** Highlight nodes whose fileAnchors intersect with the given paths */
+  setHighlight(paths: string[]): void {
+    const pathSet = new Set(paths.map(p => p.replace(/\\/g, '/')));
+    this.highlightNodeIds = new Set(
+      this.nodes
+        .filter(n => {
+          const anchors = n.semantic?.fileAnchors;
+          if (anchors && anchors.length > 0) {
+            return anchors.some(a => pathSet.has(a.replace(/\\/g, '/')));
+          }
+          // Fallback: match by node.file
+          if (n.file) return pathSet.has(n.file.replace(/\\/g, '/'));
+          return false;
+        })
+        .map(n => n.id),
+    );
+    this.notifyStateChange();
+  }
+
+  clearHighlight(): void {
+    if (this.highlightNodeIds.size === 0) return;
+    this.highlightNodeIds = new Set();
+    this.notifyStateChange();
+  }
 
   // ── Node operations ──────────────────────────────────
 

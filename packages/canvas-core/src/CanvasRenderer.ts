@@ -9,6 +9,8 @@ const COLORS = {
   nodeBgSelected: '#094771',
   nodeBorder: '#404040',
   nodeBorderSelected: '#0078d4',
+  nodeBorderHighlight: '#e2a93b',
+  nodeGlowHighlight: 'rgba(226, 169, 59, 0.25)',
   nodeText: '#cccccc',
   nodeTextDim: '#9d9d9d',
   edge: '#569cd6',
@@ -75,7 +77,7 @@ export class CanvasRenderer {
 
     // Nodes
     for (const node of state.nodes) {
-      this.drawNode(ctx, node);
+      this.drawNode(ctx, node, state.highlightNodeIds.has(node.id));
     }
 
     ctx.restore();
@@ -115,9 +117,15 @@ export class CanvasRenderer {
 
   // ── Nodes ─────────────────────────────────────────────
 
-  private drawNode(ctx: CanvasRenderingContext2D, node: ICNode): void {
+  private drawNode(ctx: CanvasRenderingContext2D, node: ICNode, isHighlighted = false): void {
     const { x, y, width, height, isSelected } = node;
     const radius = 8;
+
+    // Glow for highlighted nodes
+    if (isHighlighted && !isSelected) {
+      ctx.shadowColor = COLORS.nodeGlowHighlight;
+      ctx.shadowBlur = 12;
+    }
 
     // Background
     ctx.fillStyle = isSelected ? COLORS.nodeBgSelected : COLORS.nodeBg;
@@ -125,10 +133,19 @@ export class CanvasRenderer {
     ctx.fill();
 
     // Border
-    ctx.strokeStyle = isSelected ? COLORS.nodeBorderSelected : COLORS.nodeBorder;
-    ctx.lineWidth = isSelected ? 2 : 1;
+    if (isHighlighted && !isSelected) {
+      ctx.strokeStyle = COLORS.nodeBorderHighlight;
+      ctx.lineWidth = 2.5;
+    } else {
+      ctx.strokeStyle = isSelected ? COLORS.nodeBorderSelected : COLORS.nodeBorder;
+      ctx.lineWidth = isSelected ? 2 : 1;
+    }
     this.roundRect(ctx, x, y, width, height, radius);
     ctx.stroke();
+
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
 
     // Text — prefer semantic summary for cleaner cards
     const raw = node.semantic?.summary

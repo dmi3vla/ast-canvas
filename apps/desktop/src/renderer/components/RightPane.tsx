@@ -10,13 +10,14 @@ interface RightPaneProps {
   breadcrumb?: string[];
   onSetMode: (mode: RightMode) => void;
   onOpenSource: (path: string, line: number) => void;
+  onSelectTrace?: (paths: string[]) => void;
   onBack?: () => void;
   canGoBack?: boolean;
 }
 
 export function RightPane({
   mode, nodeId, node, source, breadcrumb,
-  onSetMode, onOpenSource, onBack, canGoBack,
+  onSetMode, onOpenSource, onSelectTrace, onBack, canGoBack,
 }: RightPaneProps) {
   if (mode === 'empty' || !nodeId) {
     return (
@@ -149,6 +150,7 @@ export function RightPane({
             summary={summary}
             anchors={anchors}
             onOpenSource={onOpenSource}
+            onSelectTrace={onSelectTrace}
           />
         </div>
       )}
@@ -314,13 +316,14 @@ function DepGraphSection({
 // ── Structural traces (CodemapBuilder) ──────────────────
 
 function StructuralTraces({
-  nodeId, text, summary, anchors, onOpenSource,
+  nodeId, text, summary, anchors, onOpenSource, onSelectTrace,
 }: {
   nodeId: string;
   text?: string;
   summary?: string;
   anchors: string[];
   onOpenSource: (path: string, line: number) => void;
+  onSelectTrace?: (paths: string[]) => void;
 }) {
   const [traces, setTraces] = React.useState<{
     id: string;
@@ -329,17 +332,24 @@ function StructuralTraces({
     locations: { id: string; path: string; lineNumber: number; title?: string }[];
   }[] | null>(null);
   const [fromCache, setFromCache] = React.useState(false);
+  const [enriched, setEnriched] = React.useState(false);
+  const [enriching, setEnriching] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
+  const fetchCodemap = React.useCallback(async (enrich = false) => {
     if (!window.electronAPI?.getNodeCodemap) return;
     let cancelled = false;
-    (async () => {
+    if (enrich) {
+      setEnriching(true);
+      setError(null);
+    }
+    try {
       const res = await window.electronAPI!.getNodeCodemap({
         nodeId,
         text,
         summary,
         fileAnchors: anchors,
+        enrich,
       });
       if (cancelled) return;
       if (res.error) {
@@ -348,11 +358,23 @@ function StructuralTraces({
       } else if (res.codemap) {
         setTraces(res.codemap.traces);
         setFromCache(!!res.fromCache);
+        setEnriched(!!res.enriched);
         setError(null);
       }
-    })();
+    } finally {
+      if (!cancelled) setEnriching(false);
+    }
     return () => { cancelled = true; };
   }, [nodeId, anchors.join(','), text, summary]);
+
+  React.useEffect(() => {
+    fetchCodemap(false);
+  }, [fetchCodemap]);
+
+  const handleEnrich = () => {
+    if (enriching) return;
+    fetchCodemap(true);
+  };
 
   if (error) {
     return (
@@ -372,12 +394,48 @@ function StructuralTraces({
 
   return (
     <div className="codemap-section" style={{ marginTop: 16 }}>
-      <div className="codemap-section__title">
-        🧭 Structural traces {fromCache ? '(cached)' : ''}
+      <div className="codemap-section__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>🧭 Structural traces {fromCache ? '(cached)' : ''}{enriched ? ' ✨' : ''}</span>
+        <button
+          onClick={handleEnrich}
+          disabled={enriching}
+          title="Use LLM to enrich codemap with semantic trace descriptions"
+          style={{
+            marginLeft: 'auto',
+            padding: '2px 8px',
+            fontSize: 11,
+            borderRadius: 3,
+            background: enriching ? 'var(--bg-tertiary)' : 'var(--accent-dim)',
+            border: `1px solid ${enriching ? 'var(--border)' : 'var(--accent)'}`,
+            color: enriching ? 'var(--text-muted)' : 'var(--accent)',
+            cursor: enriching ? 'not-allowed' : 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >{enriching ? '⏳ Enriching…' : '✨ Enrich (LLM)'}</button>
       </div>
       {traces.map(t => (
         <div key={t.id} style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4,
+              cursor: onSelectTrace ? 'pointer' : 'default',
+              padding: '2px 4px', borderRadius: 3,
+              transition: 'background 0.15s',
+            }}
+            onClick={() => {
+              if (onSelectTrace) {
+                const paths = t.locations.map(l => l.path);
+                if (paths.length > 0) onSelectTrace(paths);
+              }
+            }}
+            title={onSelectTrace ? 'Click to highlight on canvas' : undefined}
+            onMouseEnter={e => {
+              if (onSelectTrace) (e.currentTarget as HTMLElement).style.background = 'var(--accent-dim)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+            }}
+          >
             [{t.id}] {t.title}
             <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>{t.description}</span>
           </div>

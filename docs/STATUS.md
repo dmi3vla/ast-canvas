@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-10  
-> Текущая фаза: **7 — RIGHT Codemap + Source** ✅
+> Текущая фаза: **8 — LLM Enrich Codemap** 🔄
 
 ---
 
@@ -164,40 +164,37 @@
 ### Residual / next:
 - [ ] Monaco RO (optional)
 - [ ] Click dep → select LEFT node by anchor (7.5 optional)
-- [ ] Phase 8 — LLM enrich codemap
+- [x] Phase 8.1 — `enrichCodemap` (Mock + LLM)
+- [x] Phase 8.2 — IPC wire `enrich?: boolean` → LLM enrich pipeline
+- [ ] Phase 8.3 — Trace highlight (click trace → highlight LEFT nodes)
+- [ ] Phase 8.4 — Export/Import (zip bundle)
+- [ ] Phase 8.5 — Privacy flag `sendCodeSamples`
 
-## Следующая фаза: 8 — LLM enrich codemap (optional)
+## Фаза 8 — LLM Enrich Codemap 🔄
 
-```
-infinity-canvas/
-├── apps/
-│   └── desktop/          # electron-vite + React + TS
-├── packages/
-│   ├── canvas-core/      # infinite canvas (LEFT)
-│   ├── detail-pane/      # RIGHT: empty|content|codemap|source
-│   ├── schema/           # Zod types + validators
-│   ├── semantic/         # LLM context packer + codemap builder
-│   ├── ast-graph/        # Workspace indexer + dep graph (file-level first)
-│   ├── ipc/              # Electron IPC contracts
-│   └── session/          # session state + cache
-├── docs/
-│   └── research/         # ✅ Фаза 1 артефакты
-├── fixtures/
-│   └── mini-project/     # тестовый проект
-└── README.md
-```
+| Этап | Артефакт | Статус |
+|------|----------|:------:|
+| 8.1 | `packages/semantic/src/enrichCodemap.ts` — Mock + LLM enrich with allowedPaths | ✅ |
+| 8.2 | IPC wire: `enrich?: boolean` → `enrichCodemap` pipeline in main | ✅ |
+| 8.3 | RIGHT Enrich button → UI loading state → enriched codemap display | ✅ |
+| 8.4 | Trace highlight: click trace → `highlightNodeIds` on LEFT canvas | ✅ |
+| 8.5 | Export/Import: zip bundle (semantic-map.canvas + codemaps/* + manifest.json) | ⏳ |
+| 8.6 | Privacy: `sendCodeSamples` flag in LlmConfig | ⏳ |
 
----
-
-## Vendor (read-only, не менять)
-
-- `luisfernando.infinite-canvas-0.1.5/` — Canvas UI reference
-- `alex-c.code-canvas-app-0.14.8/` — AST deps reference
-- `source/` — Webpack chunks (research only)
-- `langgraph.codemap` — Schema reference
-- `cremniy_canvas.canvas` — Roadmap prompts
-
----
+### DoD Фазы 8 (накопленный):
+- [x] `pnpm typecheck` — 8/8
+- [x] `pnpm test` — **116** tests (schema 32, canvas-core 16, ast-graph 38, semantic 23, session 7)
+- [x] `enrichCodemap` core: Mock provider + LLM provider with fallback
+- [x] `allowedPaths` filter: traces retain only locations within workspace
+- [x] `traceGuide` generated: "Where do nodes like [files] fit?"
+- [x] IPC handler: structural codemap → optional enrich → enriched in response
+- [x] Enrich button in RIGHT StructuralTraces: ✨ Enrich (LLM) → ⏳ Enriching… → enriched ✨
+- [x] `enriched: boolean` returned in IPC response, shown in UI
+- [x] LEFT highlight: click trace title → golden glow on matching canvas nodes
+- [x] `CanvasState.setHighlight` / `clearHighlight` — match by `semantic.fileAnchors`
+- [x] Highlight clears on Esc, node deselect, or new node select
+- [x] Cache split: `{id}.codemap` (structural) + `{id}.enriched.codemap` (LLM) — no overwrite
+- [x] Enrich packs only neighborhood files (anchors + dep graph radius 1) instead of entire workspace
 
 ## Инварианты (не нарушать)
 

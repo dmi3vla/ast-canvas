@@ -168,3 +168,33 @@ export async function loadNodeCodemap(
     return null;
   }
 }
+
+/** Save enriched codemap to separate cache file */
+export async function saveEnrichedCodemap(
+  workspaceRoot: string,
+  nodeId: string,
+  codemap: Codemap,
+): Promise<void> {
+  const dir = join(workspaceRoot, CACHE_DIR, CODEMAPS_DIR);
+  if (!existsSync(dir)) await mkdir(dir, { recursive: true });
+
+  const path = join(dir, `${safeNodeId(nodeId)}.enriched.codemap`);
+  await writeFile(path, JSON.stringify(codemap, null, 2), 'utf-8');
+}
+
+/** Load enriched codemap from cache — returns null if not found */
+export async function loadEnrichedCodemap(
+  workspaceRoot: string,
+  nodeId: string,
+): Promise<Codemap | null> {
+  const path = join(workspaceRoot, CACHE_DIR, CODEMAPS_DIR, `${safeNodeId(nodeId)}.enriched.codemap`);
+  if (!existsSync(path)) return null;
+
+  try {
+    const raw = await readFile(path, 'utf-8');
+    const { parseCodemap } = await import('@infinity-canvas/schema');
+    return parseCodemap(raw);
+  } catch {
+    return null;
+  }
+}

@@ -56,6 +56,7 @@ const api = {
     summary?: string;
     fileAnchors?: string[];
     force?: boolean;
+    enrich?: boolean;
   }): Promise<{
     codemap?: {
       title: string;
@@ -67,6 +68,7 @@ const api = {
       }[];
     };
     fromCache?: boolean;
+    enriched?: boolean;
     error?: string;
     needsWorkspace?: boolean;
   }> => ipcRenderer.invoke('workspace:nodeCodemap', payload),
