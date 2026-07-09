@@ -19,11 +19,11 @@ import {
   MockLLMProvider,
   buildSemanticMap,
   enrichCodemap,
-  redactSamples,
-  isSendCodeSamplesEnabled,
+  applyPrivacyToPack,
 } from '@infinity-canvas/semantic';
 import { serializeDocument } from '@infinity-canvas/schema';
 import { SessionStore } from '@infinity-canvas/session';
+import { setLogWorkspace, logEvent, sanitizeForLog } from './logger';
 
 let mainWindow: BrowserWindow | null = null;
 let lastWorkspacePath: string | null = null;
@@ -236,6 +236,7 @@ ipcMain.handle('workspace:getLast', async () => {
 ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: string, options?: { force?: boolean; useMock?: boolean }) => {
   try {
     lastWorkspacePath = workspacePath;
+    setLogWorkspace(workspacePath);
 
     // 1) Index workspace
     const files = await indexWorkspace(workspacePath);
@@ -262,6 +263,9 @@ ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: strin
       budgetChars: 80_000,
     });
 
+    // 3b) Privacy
+    applyPrivacyToPack(pack);
+
     // 4) LLM provider from env/config (not always Mock)
     const llm = options?.useMock
       ? new MockLLMProvider()
@@ -271,6 +275,13 @@ ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: strin
     console.log(`[semantic] Using provider: ${providerName}`);
 
     const result = await buildSemanticMap(pack, llm);
+
+    logEvent('INFO', 'semantic-map', `Built map with ${result.diagnostics.nodeCount} nodes`, {
+      provider: sanitizeForLog(providerName),
+      fileCount,
+      nodeCount: result.diagnostics.nodeCount,
+      warnings: result.diagnostics.warnings.length,
+    }).catch(() => {});
 
     // Fallback to Mock on failure
     if (result.diagnostics.warnings.length > 0 && providerName !== 'mock') {
@@ -423,25 +434,9 @@ ipcMain.handle(
         );
         const llm = createProvider();
 
-        // Privacy: default OFF — do not send source samples to LLM.
-        // When ON, still scrub secrets (apiKey/token/Bearer/sk-...) via redactSamples.
-        const sendSamples = isSendCodeSamplesEnabled();
-        if (!sendSamples) {
-          pack.samples = pack.samples.map(s => ({
-            ...s,
-            content: `[code sample redacted: ${s.path}]`,
-          }));
-        } else {
-          pack.samples = pack.samples.map(s => ({
-            ...s,
-            content: redactSamples(s.content),
-          }));
-        }
-        // Always redact secrets in manifests (package.json etc. can hold tokens)
-        pack.manifests = pack.manifests.map(m => ({
-          ...m,
-          content: redactSamples(m.content),
-        }));
+        // Privacy: apply same policy as map build
+        applyPrivacyToPack(pack);
+        setLogWorkspace(lastWorkspacePath);
 
         const result = await enrichCodemap({
           structural: codemap,
@@ -452,10 +447,18 @@ ipcMain.handle(
 
         codemap = result.codemap;
         await saveEnrichedCodemap(lastWorkspacePath, nodeId, codemap);
+
+        logEvent('INFO', 'enrich', `Enriched codemap for node ${nodeId}`, {
+          provider: sanitizeForLog(result.diagnostics.provider),
+          strippedLocations: result.diagnostics.strippedLocations,
+          repaired: result.diagnostics.repaired,
+          traces: codemap.traces.length,
+        }).catch(() => {});
       }
 
       return { codemap, fromCache: false, enriched: !!enrich };
     } catch (err) {
+      logEvent('ERROR', 'enrich', sanitizeForLog(String(err))).catch(() => {});
       return { error: String(err) };
     }
   },
@@ -520,8 +523,15 @@ ipcMain.handle(
       };
       await writeFile(join(dest, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
+      setLogWorkspace(workspacePath);
+      logEvent('INFO', 'export', `Exported bundle with ${files.length} files`, {
+        dest: sanitizeForLog(dest),
+        fileCount: files.length,
+      }).catch(() => {});
+
       return { ok: true, dest, manifest };
     } catch (err) {
+      logEvent('ERROR', 'export', sanitizeForLog(String(err))).catch(() => {});
       return { error: String(err) };
     }
   },

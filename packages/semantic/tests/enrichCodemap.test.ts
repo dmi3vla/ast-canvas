@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { enrichCodemap, redactSamples } from '../src/enrichCodemap';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { enrichCodemap, redactSamples, applyPrivacyToPack } from '../src/enrichCodemap';
 import { MockLLMProvider } from '../src/llmProviders';
 import type { Codemap } from '@infinity-canvas/schema';
+import type { ContextPack } from '../src/contextPacker';
 
 const structuralBase: Codemap = {
   schemaVersion: 1,
@@ -140,5 +141,44 @@ describe('redactSamples', () => {
   it('leaves ordinary code unchanged', () => {
     const src = 'export function add(a: number, b: number) { return a + b; }';
     expect(redactSamples(src)).toBe(src);
+  });
+});
+
+describe('applyPrivacyToPack', () => {
+  const prev = process.env.INFINITY_LLM_SEND_SAMPLES;
+
+  beforeEach(() => {
+    delete process.env.INFINITY_LLM_SEND_SAMPLES;
+  });
+
+  afterEach(() => {
+    if (prev === undefined) delete process.env.INFINITY_LLM_SEND_SAMPLES;
+    else process.env.INFINITY_LLM_SEND_SAMPLES = prev;
+  });
+
+  function makePack(): ContextPack {
+    return {
+      tree: '.',
+      manifests: [{ path: 'package.json', content: '{"apiKey":"sk-abcdefghijklmnop"}' }],
+      samples: [{ path: 'src/a.ts', content: 'const secret = "x";\nexport const a = 1;' }],
+      stats: { totalChars: 10, budgetChars: 1000, fileCount: 1, skippedCount: 0 },
+    };
+  }
+
+  it('default OFF: samples become placeholders; manifests redacted', () => {
+    const pack = makePack();
+    applyPrivacyToPack(pack);
+    expect(pack.samples[0].content).toBe('[code sample redacted: src/a.ts]');
+    expect(pack.manifests[0].content).not.toContain('sk-abcdefghijklmnop');
+    expect(pack.manifests[0].content).toMatch(/\[REDACTED\]/);
+  });
+
+  it('ON: samples kept but secret-redacted', () => {
+    process.env.INFINITY_LLM_SEND_SAMPLES = '1';
+    const pack = makePack();
+    pack.samples[0].content = 'const apiKey = "sk-abcdefghijklmnop";\nexport const a = 1;';
+    applyPrivacyToPack(pack);
+    expect(pack.samples[0].content).toContain('export const a = 1');
+    expect(pack.samples[0].content).not.toContain('sk-abcdefghijklmnop');
   });
 });

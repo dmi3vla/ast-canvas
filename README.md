@@ -59,26 +59,62 @@ infinity-canvas/
 
 ## Tech Stack
 
-- **Platform:** Electron
-- **Renderer:** React 19 + TypeScript
+- **Platform:** Electron 34
+- **Renderer:** React 19 + TypeScript 5.7
 - **Canvas:** Canvas2D (ported from luisfernando.infinite-canvas)
-- **Build:** electron-vite
+- **Build:** electron-vite + electron-builder
 - **Package manager:** pnpm (workspaces)
+- **Testing:** vitest (118+ tests)
 
-## Development Phases
+## Features
+
+- **Semantic Map:** Open a folder → LLM generates a visual codebase map (Mock in dev/CI)
+- **Split Layout:** LEFT = infinite canvas (always visible) | RIGHT = detail pane
+- **Codemap:** Per-node dependency graph (deps-in / derives-out) + structural traces
+- **LLM Enrich:** Optional AI-powered trace descriptions with privacy-safe defaults
+- **Source Viewer:** Click-through to source files with line highlighting
+- **Export/Import:** Bundle canvas + codemaps + manifest for research sharing
+- **Privacy:** `redactSamples()` strips API keys/tokens; `INFINITY_LLM_SEND_SAMPLES=0` by default
+
+## LLM Configuration
+
+Copy `.env.example` to `.env`:
+
+```bash
+INFINITY_LLM_PROVIDER=openai-compatible  # or mock
+INFINITY_LLM_BASE_URL=http://localhost:20128/v1
+INFINITY_LLM_API_KEY=sk-...
+INFINITY_LLM_MODEL=kr/claude-haiku-4.5
+INFINITY_LLM_SEND_SAMPLES=0            # privacy: 0=safer, 1=full context
+```
+
+Without `.env`, Mock provider is used (no API needed).
+
+## Packaging
+
+```bash
+cd apps/desktop
+pnpm dist:linux    # AppImage + deb
+pnpm dist:mac      # dmg
+pnpm dist:win      # NSIS installer
+```
+
+## Development Status
 
 | Phase | Status |
-|-------|--------|
-| 1 — Reverse Engineering | ✅ (accepted with errata) |
-| 2 — Electron scaffold + Split shell | 🔄 In progress |
-| 3 — Data model | ⏳ |
-| 4 — LLM Semantic Map | ⏳ |
-| 5 — AST Graph | ⏳ |
-| 6 — Codemap integration | ⏳ |
-| 7 — Source viewer (Monaco) | ⏳ |
-| 8 — Session + cache | ⏳ |
-| 9 — Polish + packaging | ⏳ |
-| 10 — Release | ⏳ |
+|-------|:------:|
+| 1 — Reverse Engineering | ✅ |
+| 2 — Electron scaffold + Split shell | ✅ |
+| 3 — Data model (Zod schemas) | ✅ |
+| 4 — LLM Semantic Map (Mock + OpenAI-compatible) | ✅ |
+| 5 — AST Graph (import resolver + DepGraph builder) | ✅ |
+| 6 — DepGraph service (cache + watch) | ✅ |
+| 7 — RIGHT Codemap + Source | ✅ |
+| 8 — LLM Enrich + Export/Import + Privacy | ✅ |
+| 9 — Perf (cull) + Minimap + Logs | ✅ |
+| 10 — Ship (packaging + docs) | 🔄 |
+
+See [`docs/STATUS.md`](docs/STATUS.md) for detailed DoD per phase.
 
 ## License
 

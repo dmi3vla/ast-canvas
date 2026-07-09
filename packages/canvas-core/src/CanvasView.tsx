@@ -11,6 +11,8 @@ export interface CanvasViewHandle {
   fitView: () => void;
   setHighlight: (paths: string[]) => void;
   clearHighlight: () => void;
+  /** Main canvas element size in CSS/device pixels (for minimap viewport). */
+  getCanvasSize: () => { width: number; height: number };
 }
 
 interface CanvasViewProps {
@@ -129,6 +131,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
       },
       clearHighlight: () => {
         stateRef.current.clearHighlight();
+      },
+      getCanvasSize: () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return { width: 800, height: 600 };
+        return { width: canvas.width || 800, height: canvas.height || 600 };
       },
     }), []);
 

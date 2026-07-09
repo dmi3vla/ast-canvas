@@ -19,6 +19,7 @@ const COLORS = {
 
 const GRID_SIZE = 40;
 const GRID_ACCENT_EVERY = 5;
+const CULL_MARGIN = 200; // px in canvas space — draw nodes slightly outside viewport
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D | null = null;
@@ -55,6 +56,18 @@ export class CanvasRenderer {
     const w = this.canvasEl.width;
     const h = this.canvasEl.height;
 
+    // Compute visible bounds in canvas space
+    const vpLeft = -state.offsetX / state.scale - CULL_MARGIN;
+    const vpTop = -state.offsetY / state.scale - CULL_MARGIN;
+    const vpRight = vpLeft + w / state.scale + CULL_MARGIN * 2;
+    const vpBottom = vpTop + h / state.scale + CULL_MARGIN * 2;
+
+    const isVisible = (node: ICNode): boolean =>
+      node.x + node.width >= vpLeft &&
+      node.x <= vpRight &&
+      node.y + node.height >= vpTop &&
+      node.y <= vpBottom;
+
     // Clear
     ctx.fillStyle = COLORS.bg;
     ctx.fillRect(0, 0, w, h);
@@ -66,18 +79,21 @@ export class CanvasRenderer {
     // Grid
     this.drawGrid(ctx, w, h, state);
 
-    // Edges
+    // Nodes — cull offscreen
+    for (const node of state.nodes) {
+      if (!isVisible(node)) continue;
+      this.drawNode(ctx, node, state.highlightNodeIds.has(node.id));
+    }
+
+    // Edges — draw only if either endpoint is visible (cheap cull)
     for (const edge of state.edges) {
       const from = state.getNodeById(edge.fromNode);
       const to = state.getNodeById(edge.toNode);
-      if (from && to) {
+      if (!from || !to) continue;
+      // Draw edge even if one endpoint is offscreen (bezier curve may cross viewport)
+      if (isVisible(from) || isVisible(to)) {
         this.drawEdge(ctx, from, to, edge);
       }
-    }
-
-    // Nodes
-    for (const node of state.nodes) {
-      this.drawNode(ctx, node, state.highlightNodeIds.has(node.id));
     }
 
     ctx.restore();

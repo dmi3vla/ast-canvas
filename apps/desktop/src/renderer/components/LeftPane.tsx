@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import { CanvasView } from '@infinity-canvas/canvas-core';
 import type { CanvasViewHandle } from '@infinity-canvas/canvas-core';
+import { Minimap } from './Minimap';
 
 interface LeftPaneProps {
   onSelectNode?: (nodeId: string | null) => void;
@@ -21,8 +22,9 @@ export const LeftPane = forwardRef<CanvasViewHandle, LeftPaneProps>(
         }}>
           🗺️ Infinity Canvas
         </div>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           <CanvasView ref={ref} onSelectNode={onSelectNode} initialData={initialData} />
+          <Minimap canvasRef={ref as React.RefObject<CanvasViewHandle | null>} />
         </div>
       </div>
     );

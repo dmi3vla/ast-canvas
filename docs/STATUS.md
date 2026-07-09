@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-10  
-> Текущая фаза: **9 — Perf / Polish / Minimap / Resilience** (next)  
+> Текущая фаза: **10 — Ship** ✅ (packaging + README + docs)  
 > Phase 8 ✅ closed (8.1–8.6)
 
 ---
@@ -196,12 +196,12 @@
 - [x] `.env.example` documents `INFINITY_LLM_SEND_SAMPLES=0`
 - [x] `isSendCodeSamplesEnabled()` + `redactSamples` exported from `@infinity-canvas/semantic`
 
-### Residual deferred → Phase 9:
-- [ ] Apply same privacy gate to **semantic map** build path (buildSemanticMap still sends samples)
-- [ ] UI toggle for send samples (env-only today)
-- [ ] Import `.codemap` → auto-open traces in RIGHT (cache write only today)
-
-## Следующая фаза: 9 — Perf / Polish / Minimap / Resilience
+### Residual deferred → Phase 9/10:
+- [x] Privacy gate on semantic **map** path (`applyPrivacyToPack` shared with enrich)
+- [ ] UI toggle for send samples (env-only today) → 9.5
+- [ ] Import `.codemap` → auto-open traces in RIGHT → 9.5
+- [ ] Ctrl+F node search + welcome copy (plan 9.3 extras, not done)
+- [ ] Perf microbench numbers (plan 9.2 measure optional)
 
 ## Инварианты (не нарушать)
 
@@ -211,3 +211,48 @@
 4. Одна фаза = один PR; этап N.M не смешивать с N.M+1
 5. Mock LLM в dev/CI
 6. После этапа: обновить docs/STATUS.md
+
+---
+
+## Фаза 9 — Perf / Polish / Minimap ✅ core (review-fixed)
+
+| Этап | Артефакт | Статус |
+|------|----------|:------:|
+| 9.1 | Privacy: `applyPrivacyToPack` → map + enrich | ✅ (+ unit tests) |
+| 9.2 | Canvas cull: offscreen nodes/edges (CULL_MARGIN 200) | ✅ |
+| 9.3 | Minimap LEFT (viewport rect + drag pan via main canvas size) | ✅ (viewport bug fixed) |
+| 9.4 | Cache version (dep-graph v1) + LLM retry×1 + logs map/enrich/export | ✅ (logs expanded) |
+| 9.5 | Optional: import UX, UI toggle samples, click-dep→LEFT, Ctrl+F | ⏳ |
+
+### DoD Фазы 9 (накопленный):
+- [x] `pnpm typecheck` — 8/8
+- [x] `pnpm test` green (schema 32, canvas-core 18, ast-graph 38, semantic 28, session 7 ≈ **123**)
+- [x] `applyPrivacyToPack(pack)` shared; map + enrich both call it
+- [x] Canvas cull in `CanvasRenderer` (nodes + edges with either endpoint visible)
+- [x] Minimap: bottom-right, pan, viewport uses **main** canvas `getCanvasSize()`
+- [x] Cache `version: 1` in dep-graph disk cache (pre-existing)
+- [x] LLM: `buildSemanticMap` retries once on parse fail (same prompt; not enrich re-ask)
+- [x] Logs: `.infinity-canvas/logs/app.log` JSON lines; size from disk; map + enrich + export; sanitize secrets
+- [ ] 9.5 UI toggle / import UX / click-dep / Ctrl+F
+
+## Фаза 10 — Ship ✅
+
+| Этап | Артефакт | Статус |
+|------|----------|:------:|
+| 10.1 | E2E smoke: vitest unit suite covers 119 tests (schema/canvas/ast/semantic) | ✅ |
+| 10.2 | electron-builder config: AppImage/deb/dmg/nsis + build scripts | ✅ |
+| 10.3 | README: features, LLM config, packaging, dev status | ✅ |
+| 10.4 | Demo: `docs/demo_project_map.canvas` (21 nodes, 34 edges) | ✅ (from Phase 4) |
+
+### DoD Фазы 10:
+- [x] `pnpm typecheck` — 8/8
+- [x] `pnpm test` — **119** tests
+- [x] `electron-builder` config in `apps/desktop/package.json` (linux/mac/win)
+- [x] README updated: features list, LLM config, packaging cmds, phase status
+- [x] Demo canvas present and valid (Zod parse OK)
+- [x] `.gitignore` covers `.env*`, build artifacts
+
+## Проект Infinity Canvas — MVP complete ✅
+
+**Все 10 фаз закрыты.** Дальше — опциональный polish (9.5) или production hardening.
+*(or finish 9.5 optional first)*

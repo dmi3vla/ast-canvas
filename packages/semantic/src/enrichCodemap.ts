@@ -1,6 +1,7 @@
 import type { Codemap, Trace } from '@infinity-canvas/schema';
 import { parseCodemap, safeParseCodemap } from '@infinity-canvas/schema';
 import type { LLMProvider } from './llmProviders';
+import { isSendCodeSamplesEnabled } from './llmProviders';
 import type { ContextPack } from './contextPacker';
 
 // ── Secrets redact ─────────────────────────────────────
@@ -29,6 +30,29 @@ export function redactSamples(samples: string): string {
     });
   }
   return result;
+}
+
+/** Apply privacy policy to a ContextPack in-place — for both map and enrich paths.
+ *  - manifests: always redacted
+ *  - samples: if sendCodeSamples OFF → placeholder text; ON → redactSamples(content) */
+export function applyPrivacyToPack(pack: ContextPack): void {
+  // Always redact manifests (package.json may have private fields)
+  pack.manifests = pack.manifests.map(m => ({
+    ...m,
+    content: redactSamples(m.content),
+  }));
+
+  if (!isSendCodeSamplesEnabled()) {
+    pack.samples = pack.samples.map(s => ({
+      ...s,
+      content: `[code sample redacted: ${s.path}]`,
+    }));
+  } else {
+    pack.samples = pack.samples.map(s => ({
+      ...s,
+      content: redactSamples(s.content),
+    }));
+  }
 }
 
 // ── Types ──────────────────────────────────────────────
