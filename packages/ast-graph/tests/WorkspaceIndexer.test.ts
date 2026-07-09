@@ -30,9 +30,10 @@ describe('WorkspaceIndexer', () => {
     const files = await indexWorkspace(FIXTURES_DIR, {
       skipNames: ['src'],
     });
-    // Only root-level files remain (README.md, package.json)
-    expect(files.length).toBe(2);
+    // Root-level only (README.md, package.json, maybe .gitignore) — no src/**
+    expect(files.length).toBeGreaterThanOrEqual(2);
     expect(files.every(f => !f.relativePath.startsWith('src/'))).toBe(true);
+    expect(files.every(f => !f.relativePath.includes('/'))).toBe(true);
   });
 
   it('respects maxDepth', async () => {

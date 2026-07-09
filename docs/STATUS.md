@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
-> Последнее обновление: 2026-07-09  
-> Текущая фаза: **6 — AST / DepGraph** ✅ (accepted with notes)
+> Последнее обновление: 2026-07-10  
+> Текущая фаза: **7 — RIGHT Codemap + Source** 🔄
 
 ---
 
@@ -129,16 +129,37 @@
 - [x] RIGHT Codemap: реальные deps-in/derives-out из DepGraph
 - [x] Fallback: static anchors когда нет workspace
 
-### Known residual:
-- [ ] Service fingerprint = O(n) indexWorkspace перед каждым getGraph (легковесный, но читает директорию)
+### Known residual (Phase 6):
+- [x] invalidate → disk delete + fingerprint freshness
+- [x] fs.watch recursive + debounce 300ms
+- [x] getEgo union all anchors (depth 1)
+- [ ] fingerprint still needs indexWorkspace on cold path (acceptable)
+- [ ] fixtures/mini-project may get `.infinity-canvas/` from tests — gitignore recommended
+- [ ] 5.4 token refs still deferred
 - [ ] Watch на Linux/macOS recursive работает; на некоторых FS — shallow fallback
 - [ ] `.infinity-canvas/dep-graph.json` в fixtures — добавлен в `.gitignore`
 
 ---
 
-## Следующая фаза: 7 — RIGHT Codemap + Source (Monaco)
+## Следующая фаза: 7 — RIGHT Codemap + Source 🔄
 
-Ближайшие этапы:
+| Этап | Артефакт | Статус |
+|------|----------|:------:|
+| 7.0 | Polish: empty states, labels, external node styling | ✅ |
+| 7.1 | Codemap UX: depth toggle, Depends on/Used by, kind badges | ✅ |
+| 7.2 | `CodemapBuilder` → `.infinity-canvas/codemaps/{nodeId}.codemap` | ✅ |
+| 7.3 | Navigation stack + breadcrumb + back button (← / Esc) | ✅ |
+| 7.4 | Source viewer: scroll-to-line, Copy path, sticky header | ✅ |
+| 7.5 | Monaco editor — deferred (MVP = solid pre viewer) | ⏳ |
+
+### DoD Фазы 7:
+- [x] `pnpm typecheck` — 8/8 зелёные
+- [x] `pnpm test` — 106 тестов
+- [x] Codemap: depth toggle 1/2, Depends on / Used by, external nodes muted
+- [x] Structural codemap: `buildNodeCodemap` + save/load `.codemap` files
+- [x] Navigation stack: ← back button + breadcrumb + Esc pop
+- [x] Source: scroll-to-line, Copy path, sticky header, error states
+- [x] Content → Codemap → Source drill path с возвратом без потери выбора узла
 
 ### Screenshot notes (`docs/1.png` `2.png` `3.png`):
 LEFT = demo seed (Architecture / Canvas Core / IPC / AppShell), not LLM map —

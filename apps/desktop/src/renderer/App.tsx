@@ -9,6 +9,12 @@ import { RightPane } from './components/RightPane';
 
 export type { RightMode };
 
+export interface NavEntry {
+  mode: RightMode;
+  source?: { path: string; line: number };
+  title?: string;
+}
+
 export interface AppState {
   leftRatio: number;
   selectedNodeId: string | null;
@@ -20,6 +26,7 @@ export interface AppState {
   isLoading: boolean;
   mapNodeCount: number;
   fromCache: boolean;
+  navStack: NavEntry[]; // breadcrumb history
 }
 
 export function App() {
@@ -33,6 +40,7 @@ export function App() {
     isLoading: false,
     mapNodeCount: 0,
     fromCache: false,
+    navStack: [],
   });
 
   const canvasRef = useRef<CanvasViewHandle>(null);
@@ -104,7 +112,6 @@ export function App() {
     const node = nodeId
       ? (canvasRef.current?.state.getNodeById(nodeId) ?? null)
       : null;
-    // clone plain fields for React state
     const snap: ICNode | null = node
       ? {
           ...node,
@@ -118,16 +125,20 @@ export function App() {
       selectedNode: snap,
       rightMode: nodeId ? 'content' : 'empty',
       source: undefined,
+      navStack: [], // reset stack on new selection
     }));
   }, []);
 
   const handleSetRightMode = useCallback((mode: RightMode) => {
-    setState(s => ({ ...s, rightMode: mode }));
+    setState(s => ({
+      ...s,
+      rightMode: mode,
+      navStack: s.navStack.length === 0 ? [] : [...s.navStack, { mode: s.rightMode, source: s.source, title: s.selectedNode?.text?.split('\n')[0]?.replace(/^#+\s*/, '') }],
+    }));
   }, []);
 
   const handleOpenSource = useCallback((path: string, line: number) => {
     if (!state.workspacePath && !path.startsWith('/')) {
-      // No workspace — can't resolve relative paths
       alert('Please open a workspace folder first to view source files.\n\nUse "Open Folder" in the toolbar.');
       return;
     }
@@ -136,9 +147,30 @@ export function App() {
       if (s.workspacePath && !path.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(path)) {
         abs = `${s.workspacePath.replace(/\/$/, '')}/${path.replace(/^\.\//, '')}`;
       }
-      return { ...s, rightMode: 'source', source: { path: abs, line } };
+      return {
+        ...s,
+        rightMode: 'source',
+        source: { path: abs, line },
+        navStack: [...s.navStack, { mode: s.rightMode, source: s.source, title: path.split('/').pop() }],
+      };
     });
   }, [state.workspacePath]);
+
+  const handleNavBack = useCallback(() => {
+    setState(s => {
+      if (s.navStack.length === 0) {
+        handleSelectNode(null);
+        return s;
+      }
+      const prev = s.navStack[s.navStack.length - 1];
+      return {
+        ...s,
+        rightMode: prev.mode,
+        source: prev.source,
+        navStack: s.navStack.slice(0, -1),
+      };
+    });
+  }, []);
 
   const handleSetRatio = useCallback((ratio: number) => {
     setState(s => ({ ...s, leftRatio: ratio }));
@@ -186,11 +218,18 @@ export function App() {
     }));
   }, []);
 
-  // Keyboard: Esc → clear selection
+  // Keyboard: Esc → nav back or clear selection
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleSelectNode(null);
+        setState(s => {
+          if (s.navStack.length > 0) {
+            const prev = s.navStack[s.navStack.length - 1];
+            return { ...s, rightMode: prev.mode, source: prev.source, navStack: s.navStack.slice(0, -1) };
+          }
+          handleSelectNode(null);
+          return s;
+        });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -226,6 +265,8 @@ export function App() {
             source={state.source}
             onSetMode={handleSetRightMode}
             onOpenSource={handleOpenSource}
+            onBack={handleNavBack}
+            canGoBack={state.navStack.length > 0}
           />
         </div>
       </div>

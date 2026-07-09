@@ -75,19 +75,22 @@ export class DepGraphService {
     this.cache.delete(workspaceRoot);
     // Delete stale disk cache so next getGraph rebuilds
     const cachePath = join(workspaceRoot, CACHE_DIR, CACHE_FILE);
-    try { unlink(cachePath); } catch { /* file may not exist */ }
+    void unlink(cachePath).catch(() => { /* file may not exist */ });
   }
 
-  /** Get ego network for a center node, or union for multiple anchors */
+  /**
+   * Ego network for one or more anchors (depth 1 = union of each center's ego).
+   * `center` is the first matched anchor id (primary).
+   */
   async getEgo(
     workspaceRoot: string,
     centerPaths: string[],
     depth = 1,
   ): Promise<{ nodes: Set<string>; edges: DepEdge[]; center: string } | null> {
     const g = await this.getGraph(workspaceRoot);
+    const { egoNetwork } = await import('@infinity-canvas/schema');
 
-    // Find first matching anchor that has a graph node
-    let nodeId = '';
+    const matched: string[] = [];
     for (const cp of centerPaths) {
       let candidate = cp;
       if (!g.nodes[candidate]) {
@@ -95,18 +98,29 @@ export class DepGraphService {
           id.endsWith(cp) || cp.endsWith(id),
         ) || '';
       }
-      if (candidate && g.nodes[candidate]) {
-        nodeId = candidate;
-        break;
+      if (candidate && g.nodes[candidate] && !matched.includes(candidate)) {
+        matched.push(candidate);
       }
     }
 
-    if (!nodeId || !g.nodes[nodeId]) return null;
+    if (matched.length === 0) return null;
 
-    const { egoNetwork } = await import('@infinity-canvas/schema');
-    const ego = egoNetwork(g, nodeId, depth);
+    const nodes = new Set<string>();
+    const edgeMap = new Map<string, DepEdge>();
+    for (const id of matched) {
+      const ego = egoNetwork(g, id, depth);
+      for (const n of ego.nodes) nodes.add(n);
+      for (const e of ego.edges) {
+        const key = `${e.from}->${e.to}:${e.kind}`;
+        edgeMap.set(key, e);
+      }
+    }
 
-    return { ...ego, center: nodeId };
+    return {
+      nodes,
+      edges: [...edgeMap.values()],
+      center: matched[0],
+    };
   }
 
   // ── Internal ────────────────────────────────────────
