@@ -177,9 +177,8 @@ export function App() {
     setCanvasData(DEMO_CANVAS_JSON);
     setState(s => ({
       ...s,
-      workspacePath: null,
-      fileCount: 0,
-      mapNodeCount: 0,
+      // Keep workspace if already open — Source/deps still resolve
+      mapNodeCount: 21,
       fromCache: false,
       selectedNodeId: null,
       selectedNode: null,

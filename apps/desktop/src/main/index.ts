@@ -2,15 +2,40 @@ import { app, BrowserWindow, shell, dialog, ipcMain } from 'electron';
 import { join, resolve, normalize, relative } from 'path';
 import { is } from '@electron-toolkit/utils';
 import { readFile, writeFile, readdir, stat } from 'fs/promises';
-import { existsSync, mkdirSync } from 'fs';
-import { indexWorkspace } from '@infinity-canvas/ast-graph';
-import { buildDepGraph } from '@infinity-canvas/ast-graph';
+import { existsSync, mkdirSync, watch } from 'fs';
+import { indexWorkspace, buildDepGraph, depGraphService } from '@infinity-canvas/ast-graph';
 import { contextPacker, createProvider, MockLLMProvider, buildSemanticMap } from '@infinity-canvas/semantic';
 import { serializeDocument } from '@infinity-canvas/schema';
 import { SessionStore } from '@infinity-canvas/session';
 
 let mainWindow: BrowserWindow | null = null;
 let lastWorkspacePath: string | null = null;
+let workspaceWatcher: ReturnType<typeof watch> | null = null;
+
+// ── Workspace watch ─────────────────────────────────────
+
+function startWorkspaceWatch(root: string): void {
+  stopWorkspaceWatch();
+  let timer: ReturnType<typeof setTimeout>;
+  try {
+    workspaceWatcher = watch(root, { recursive: true }, (_event, filename) => {
+      if (!filename) return;
+      if (filename.startsWith('.') || filename.includes('node_modules') || filename.includes('/dist/') || filename.includes('/out/')) return;
+      // Debounce 300ms before invalidate
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        depGraphService.invalidate(root);
+      }, 300);
+    });
+  } catch { /* watch not supported everywhere */ }
+}
+
+function stopWorkspaceWatch(): void {
+  if (workspaceWatcher) {
+    workspaceWatcher.close();
+    workspaceWatcher = null;
+  }
+}
 
 // ── Path safety ─────────────────────────────────────────
 
@@ -74,6 +99,7 @@ ipcMain.handle('dialog:openWorkspace', async () => {
 
   const folderPath = result.filePaths[0];
   lastWorkspacePath = folderPath;
+  startWorkspaceWatch(folderPath);
 
   // Store for next session
   try {
@@ -179,6 +205,7 @@ ipcMain.handle('workspace:getLast', async () => {
     // Verify the workspace still exists on disk
     if (path && existsSync(path)) {
       lastWorkspacePath = path;
+      startWorkspaceWatch(path);
       return path;
     }
     return null;
@@ -269,31 +296,27 @@ ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: strin
 
 ipcMain.handle('workspace:depGraph', async (_event, _workspacePath: string, nodeFileAnchors?: string[]) => {
   try {
-    if (!lastWorkspacePath) return { error: 'No workspace open' };
+    if (!lastWorkspacePath) return { error: 'No workspace open', needsWorkspace: true };
 
-    const files = await indexWorkspace(lastWorkspacePath);
-    const g = await buildDepGraph(files, {
-      workspaceRoot: lastWorkspacePath,
-      skipBareModules: false,
-      maxFiles: 200,
-    });
+    // Use cached service (not full rebuild every request)
+    const centerPaths = nodeFileAnchors && nodeFileAnchors.length > 0
+      ? nodeFileAnchors
+      : [];
+    const ego = await depGraphService.getEgo(lastWorkspacePath, centerPaths, 1);
 
-    if (nodeFileAnchors && nodeFileAnchors.length > 0) {
-      const { egoNetwork } = await import('@infinity-canvas/schema');
-      const anchor = nodeFileAnchors[0];
-      const nodeId = Object.keys(g.nodes).find(id => id.endsWith(anchor) || anchor.endsWith(id));
-      if (nodeId) {
-        const ego = egoNetwork(g, nodeId, 1);
-        return {
-          center: nodeId,
-          nodeCount: ego.nodes.size,
-          edgeCount: ego.edges.length,
-          edges: ego.edges.map(e => ({ from: e.from, to: e.to, kind: e.kind, line: e.loc?.line })),
-          nodes: [...ego.nodes].map(id => ({ id, name: g.nodes[id]?.name, kind: g.nodes[id]?.kind })),
-        };
-      }
+    if (ego) {
+      const g = await depGraphService.getGraph(lastWorkspacePath);
+      return {
+        center: ego.center,
+        nodeCount: ego.nodes.size,
+        edgeCount: ego.edges.length,
+        edges: ego.edges.map(e => ({ from: e.from, to: e.to, kind: e.kind, line: e.loc?.line })),
+        nodes: [...ego.nodes].map(id => ({ id, name: g.nodes[id]?.name, kind: g.nodes[id]?.kind })),
+      };
     }
 
+    // Fallback: summary only
+    const g = await depGraphService.getGraph(lastWorkspacePath);
     return { nodeCount: Object.keys(g.nodes).length, edgeCount: g.edges.length };
   } catch (err) {
     return { error: String(err) };

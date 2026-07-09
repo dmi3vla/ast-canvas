@@ -10,3 +10,5 @@ export type { ImportInfo, FileImports } from './import-resolver';
 
 export { buildDepGraph } from './depGraphBuilder';
 export type { BuildOptions } from './depGraphBuilder';
+
+export { DepGraphService, depGraphService } from './DepGraphService';

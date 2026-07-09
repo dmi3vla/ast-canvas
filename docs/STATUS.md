@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-09  
-> Текущая фаза: **5 — AST Graph** 🔄
+> Текущая фаза: **6 — AST / DepGraph** ✅ (accepted with notes)
 
 ---
 
@@ -106,24 +106,39 @@
 
 ---
 
-## Следующая фаза: 6 — AST / DepGraph (backend deepen)
+## Следующая фаза: 6 — AST / DepGraph (backend deepen) 🔄
+
+| Этап | Артефакт | Статус |
+|------|----------|:------:|
+| 6.0 | Demo + workspace unify (Load Demo keeps workspace) | ✅ |
+| 6.1 | `depGraphBuilder.test.ts` — 8 tests on mini-project fixture | ✅ |
+| 6.2 | `DepGraphService` — memory + disk cache (`.infinity-canvas/dep-graph.json`) | ✅ |
+| 6.3 | IPC `workspace:depGraph` → `depGraphService.getEgo` (no full rebuild) | ✅ |
+| 6.4 | `fs.watch` on workspace → `depGraphService.invalidate` | ✅ |
+| 6.5 | Symbol-level spike — deferred to 7.x (optional) | ⏳ |
+
+### DoD Фазы 6:
+- [x] `pnpm typecheck` — 8/8 зелёные
+- [x] `pnpm test` — 106 тестов
+- [x] Load Demo НЕ сбрасывает workspace — Source + DepGraph работают
+- [x] `DepGraphService`: getGraph, getEgo, invalidate (mem+disk)
+- [x] Cache freshness: fingerprint (fileCount + max mtime) — stale cache → rebuild
+- [x] `invalidate` чистит и memory, и disk
+- [x] `fs.watch` recursive + debounce 300ms
+- [x] `getEgo` пробует все anchors (не только первый)
+- [x] RIGHT Codemap: реальные deps-in/derives-out из DepGraph
+- [x] Fallback: static anchors когда нет workspace
+
+### Known residual:
+- [ ] Service fingerprint = O(n) indexWorkspace перед каждым getGraph (легковесный, но читает директорию)
+- [ ] Watch на Linux/macOS recursive работает; на некоторых FS — shallow fallback
+- [ ] `.infinity-canvas/dep-graph.json` в fixtures — добавлен в `.gitignore`
+
+---
+
+## Следующая фаза: 7 — RIGHT Codemap + Source (Monaco)
 
 Ближайшие этапы:
-- 6.1 — TS/JS adapter (acorn/tsc for deeper AST)
-- 6.2 — DepGraphService with watch + cache
-- 6.3 — Symbol-level extraction (optional spike)
-- 6.4 — Wire to RIGHT with ego + navigation
-
-### Known residual (Phase 4 / UX from docs/1-3.png review):
-- [x] **P1** `CanvasView` only applied `initialData` on mount → after `buildMap` UI stayed on **demo seed** (screenshots). Fixed: react to `initialData` + `loadData` + `fitView`
-- [x] RIGHT content was mock (`Node: node_9`); now shows node text/summary/anchors
-- [x] Node label rendering: newlines + strip `#` markdown
-- [x] load/export preserve `semantic`/`graph` on nodes
-- [ ] Toolbar not visible on screenshots when no workspace — Open Folder first / auto-load
-- [ ] Source needs path under workspace (resolved relative→abs); monaco later
-- [ ] Real DepGraph deps (not anchors only) → Phase 5–6
-- [ ] `canvas-core` types still independent from `schema` (non-blocking)
-- [ ] Dual demo vs map: empty state without workspace still shows demo seed (OK)
 
 ### Screenshot notes (`docs/1.png` `2.png` `3.png`):
 LEFT = demo seed (Architecture / Canvas Core / IPC / AppShell), not LLM map —
