@@ -81,6 +81,27 @@ const api = {
     provider?: string;
     error?: string;
   }> => ipcRenderer.invoke('workspace:buildSemanticMap', workspacePath, options),
+
+  // Export / Import
+  exportBundle: (workspacePath: string): Promise<{
+    ok?: boolean;
+    dest?: string;
+    manifest?: { version: number; exportedAt: string; workspaceName: string; files: string[] };
+    error?: string;
+  }> => ipcRenderer.invoke('workspace:exportBundle', workspacePath),
+
+  importBundle: (workspacePath: string | null): Promise<{
+    ok?: boolean;
+    codemap?: any;
+    sourcePath?: string;
+    error?: string;
+  }> => ipcRenderer.invoke('workspace:importBundle', workspacePath),
+
+  importLanggraph: (workspacePath: string): Promise<{
+    ok?: boolean;
+    codemap?: any;
+    error?: string;
+  }> => ipcRenderer.invoke('workspace:importLanggraph', workspacePath),
 };
 
 // Expose in main world

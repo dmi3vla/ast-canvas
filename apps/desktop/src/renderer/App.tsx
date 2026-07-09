@@ -250,6 +250,39 @@ export function App() {
     }));
   }, []);
 
+  const handleExport = useCallback(async () => {
+    if (!state.workspacePath || !window.electronAPI) return;
+    const res = await window.electronAPI.exportBundle(state.workspacePath);
+    if (res.error && res.error !== 'cancelled') alert(`Export failed: ${res.error}`);
+    else if (res.ok) alert(`Bundle exported to:\n${res.dest}\nFiles: ${res.manifest?.files.length || 0}`);
+  }, [state.workspacePath]);
+
+  const handleImport = useCallback(async () => {
+    if (!window.electronAPI) return;
+    const res = await window.electronAPI.importBundle(state.workspacePath);
+    if (res.error && res.error !== 'cancelled') alert(`Import failed: ${res.error}`);
+    else if (res.ok && res.codemap) {
+      setState(s => ({
+        ...s,
+        rightMode: 'codemap',
+        selectedNodeId: `${s.selectedNodeId || 'imported'}_imported`,
+        selectedNode: null,
+      }));
+      // Store imported codemap for display — will be shown in StructuralTraces via force reload
+      queueMicrotask(() => {
+        // trigger re-fetch of codemap — imported file is now in cache
+        setState(s => ({ ...s, rightMode: 'codemap' }));
+      });
+    }
+  }, [state.workspacePath]);
+
+  const handleImportLanggraph = useCallback(async () => {
+    if (!state.workspacePath || !window.electronAPI) return;
+    const res = await window.electronAPI.importLanggraph(state.workspacePath);
+    if (res.error) alert(`Import langgraph.codemap failed: ${res.error}`);
+    else if (res.ok) alert(`langgraph.codemap imported (${res.codemap?.traces?.length || 0} traces)`);
+  }, [state.workspacePath]);
+
   // Keyboard: Esc → nav back or clear selection
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -284,6 +317,9 @@ export function App() {
         onOpenFolder={handleOpenFolder}
         onRegenerate={handleRegenerate}
         onLoadDemo={handleLoadDemo}
+        onExport={handleExport}
+        onImport={handleImport}
+        onImportLanggraph={handleImportLanggraph}
       />
       <div className="app-main">
         <div className="left-pane" style={{ flex: `0 0 ${state.leftRatio * 100}%` }}>

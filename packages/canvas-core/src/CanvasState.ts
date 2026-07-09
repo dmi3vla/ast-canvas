@@ -24,18 +24,34 @@ export class CanvasState {
 
   // ── Highlight ────────────────────────────────────────
 
+  /** Normalize path for fuzzy compare (relative or absolute) */
+  private static normPath(p: string): string {
+    return p.replace(/\\/g, '/').replace(/^\.\//, '');
+  }
+
+  /** True if a and b refer to the same file (exact, suffix, or basename) */
+  private static pathsMatch(a: string, b: string): boolean {
+    const x = CanvasState.normPath(a);
+    const y = CanvasState.normPath(b);
+    if (x === y) return true;
+    if (x.endsWith('/' + y) || y.endsWith('/' + x)) return true;
+    // basename match as last resort (src/foo.ts vs .../src/foo.ts)
+    const bx = x.split('/').pop() || x;
+    const by = y.split('/').pop() || y;
+    return bx === by && bx.includes('.');
+  }
+
   /** Highlight nodes whose fileAnchors intersect with the given paths */
   setHighlight(paths: string[]): void {
-    const pathSet = new Set(paths.map(p => p.replace(/\\/g, '/')));
+    const list = paths.filter(Boolean);
     this.highlightNodeIds = new Set(
       this.nodes
         .filter(n => {
           const anchors = n.semantic?.fileAnchors;
           if (anchors && anchors.length > 0) {
-            return anchors.some(a => pathSet.has(a.replace(/\\/g, '/')));
+            return anchors.some(a => list.some(p => CanvasState.pathsMatch(a, p)));
           }
-          // Fallback: match by node.file
-          if (n.file) return pathSet.has(n.file.replace(/\\/g, '/'));
+          if (n.file) return list.some(p => CanvasState.pathsMatch(n.file!, p));
           return false;
         })
         .map(n => n.id),

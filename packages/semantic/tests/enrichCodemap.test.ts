@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { enrichCodemap } from '../src/enrichCodemap';
+import { enrichCodemap, redactSamples } from '../src/enrichCodemap';
 import { MockLLMProvider } from '../src/llmProviders';
 import type { Codemap } from '@infinity-canvas/schema';
 
@@ -112,5 +112,33 @@ describe('enrichCodemap', () => {
     });
 
     expect(result.codemap.metadata.generationSource).toBe('llm-enrich-mock');
+  });
+});
+
+describe('redactSamples', () => {
+  it('redacts apiKey / password / token style assignments', () => {
+    const src = [
+      'const apiKey = "sk-secret-value-here"',
+      'password: hunter2',
+      'token = "abc123xyz"',
+    ].join('\n');
+    const out = redactSamples(src);
+    expect(out).not.toContain('sk-secret-value-here');
+    expect(out).not.toContain('hunter2');
+    expect(out).not.toContain('abc123xyz');
+    expect(out).toMatch(/\[REDACTED\]/);
+  });
+
+  it('redacts Bearer and sk- tokens', () => {
+    const src = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\napi_key=sk-abcdefghijklmnopqrstuv';
+    const out = redactSamples(src);
+    expect(out).not.toContain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
+    expect(out).not.toMatch(/sk-[a-zA-Z0-9_-]{10,}/);
+    expect(out).toMatch(/\[REDACTED\]/);
+  });
+
+  it('leaves ordinary code unchanged', () => {
+    const src = 'export function add(a: number, b: number) { return a + b; }';
+    expect(redactSamples(src)).toBe(src);
   });
 });

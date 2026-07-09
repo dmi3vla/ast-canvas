@@ -3,6 +3,34 @@ import { parseCodemap, safeParseCodemap } from '@infinity-canvas/schema';
 import type { LLMProvider } from './llmProviders';
 import type { ContextPack } from './contextPacker';
 
+// ── Secrets redact ─────────────────────────────────────
+
+/** Order matters: longer / more specific first (Bearer before bare Authorization). */
+const SECRET_PATTERNS = [
+  /Authorization\s*:\s*Bearer\s+\S+/gi,
+  /Bearer\s+\S+/gi,
+  /Authorization\s*:\s*\S+/gi,
+  /api[_-]?key\s*[=:]\s*['"]?\S+['"]?/gi,
+  /secret\s*[=:]\s*['"]?\S+['"]?/gi,
+  /password\s*[=:]\s*['"]?\S+['"]?/gi,
+  /token\s*[=:]\s*['"]?\S+['"]?/gi,
+  /sk-[a-zA-Z0-9_-]{10,}/g,
+];
+
+/** Strip sensitive tokens from a content string (API keys, Bearer, sk-…). */
+export function redactSamples(samples: string): string {
+  let result = samples;
+  for (const pattern of SECRET_PATTERNS) {
+    // Reset lastIndex for global patterns reused across calls
+    pattern.lastIndex = 0;
+    result = result.replace(pattern, (match) => {
+      const prefix = match.slice(0, Math.min(8, match.length));
+      return `${prefix}[REDACTED]`;
+    });
+  }
+  return result;
+}
+
 // ── Types ──────────────────────────────────────────────
 
 export interface EnrichInput {
@@ -47,6 +75,15 @@ function buildEnrichPrompt(structural: Codemap, pack: ContextPack | undefined, a
     for (const m of pack.manifests) {
       userParts.push(`File: ${m.path}\n\`\`\`\n${m.content.slice(0, 1000)}\n\`\`\``);
     }
+    // Samples (may already be redacted / placeholder-stripped by caller)
+    let used = 0;
+    const sampleBudget = 20_000;
+    for (const s of pack.samples) {
+      if (used >= sampleBudget) break;
+      const snippet = s.content.slice(0, Math.min(1500, sampleBudget - used));
+      userParts.push(`File: ${s.path}\n\`\`\`\n${snippet}\n\`\`\``);
+      used += snippet.length;
+    }
   }
 
   userParts.push('\nEnrich the codemap: add traceGuide to each trace, refine descriptions, keep only allowed paths.');
@@ -56,12 +93,25 @@ function buildEnrichPrompt(structural: Codemap, pack: ContextPack | undefined, a
 // ── Post-process ───────────────────────────────────────
 
 function normalizePath(p: string): string {
-  return p.replace(/^\.\//, '');
+  return p.replace(/\\/g, '/').replace(/^\.\//, '');
+}
+
+/** Allow exact, relative suffix, or basename match against allowlist */
+function pathAllowed(path: string, allowed: Set<string>): boolean {
+  const n = normalizePath(path);
+  if (allowed.has(n)) return true;
+  for (const a of allowed) {
+    if (n.endsWith('/' + a) || a.endsWith('/' + n) || n.endsWith(a) || a.endsWith(n)) return true;
+    const bn = n.split('/').pop() || n;
+    const ba = a.split('/').pop() || a;
+    if (bn === ba && bn.includes('.')) return true;
+  }
+  return false;
 }
 
 function filterLocations(trace: Trace, allowed: Set<string>): { kept: number; stripped: number } {
   const before = trace.locations.length;
-  trace.locations = trace.locations.filter(loc => allowed.has(normalizePath(loc.path)));
+  trace.locations = trace.locations.filter(loc => pathAllowed(loc.path, allowed));
   return { kept: trace.locations.length, stripped: before - trace.locations.length };
 }
 
@@ -96,8 +146,8 @@ function mockEnrich(structural: Codemap, allowedPaths: string[]): Codemap {
   const allowed = new Set(allowedPaths.map(normalizePath));
 
   for (const trace of enriched.traces) {
-    // Filter locations
-    trace.locations = trace.locations.filter(loc => allowed.has(normalizePath(loc.path)));
+    // Filter locations (fuzzy path match)
+    trace.locations = trace.locations.filter(loc => pathAllowed(loc.path, allowed));
 
     // Add mock traceGuide
     if (!trace.traceGuide) {

@@ -1,7 +1,8 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-10  
-> Текущая фаза: **8 — LLM Enrich Codemap** 🔄
+> Текущая фаза: **9 — Perf / Polish / Minimap / Resilience** (next)  
+> Phase 8 ✅ closed (8.1–8.6)
 
 ---
 
@@ -164,37 +165,43 @@
 ### Residual / next:
 - [ ] Monaco RO (optional)
 - [ ] Click dep → select LEFT node by anchor (7.5 optional)
-- [x] Phase 8.1 — `enrichCodemap` (Mock + LLM)
-- [x] Phase 8.2 — IPC wire `enrich?: boolean` → LLM enrich pipeline
-- [ ] Phase 8.3 — Trace highlight (click trace → highlight LEFT nodes)
-- [ ] Phase 8.4 — Export/Import (zip bundle)
-- [ ] Phase 8.5 — Privacy flag `sendCodeSamples`
+- [x] 8.1–8.4 enrich + button + LEFT highlight + split cache
+- [x] path normalize: highlight + neighborhood pack (abs/rel/basename)
+- [x] **8.5** Export/Import folder bundle (not zip) + `.codemap` / langgraph
+- [x] **8.6** Privacy `sendCodeSamples` + `redactSamples` (review-fixed: samples in enrich prompt; redact when ON)
 
-## Фаза 8 — LLM Enrich Codemap 🔄
+## Фаза 8 — LLM Enrich Codemap ✅ (8.1–8.6)
 
 | Этап | Артефакт | Статус |
 |------|----------|:------:|
-| 8.1 | `packages/semantic/src/enrichCodemap.ts` — Mock + LLM enrich with allowedPaths | ✅ |
-| 8.2 | IPC wire: `enrich?: boolean` → `enrichCodemap` pipeline in main | ✅ |
-| 8.3 | RIGHT Enrich button → UI loading state → enriched codemap display | ✅ |
-| 8.4 | Trace highlight: click trace → `highlightNodeIds` on LEFT canvas | ✅ |
-| 8.5 | Export/Import: zip bundle (semantic-map.canvas + codemaps/* + manifest.json) | ⏳ |
-| 8.6 | Privacy: `sendCodeSamples` flag in LlmConfig | ⏳ |
+| 8.1 | `enrichCodemap.ts` — Mock + LLM + allowedPaths | ✅ |
+| 8.2 | IPC `enrich?: boolean` + pipeline | ✅ |
+| 8.3 | RIGHT ✨ Enrich button | ✅ |
+| 8.4 | Trace click → LEFT golden highlight | ✅ |
+| 8.4b | path fuzzy match (highlight + neighborhood pack) | ✅ |
+| 8.5 | Export/Import folder bundle + import .codemap / langgraph | ✅ |
+| 8.6 | Privacy: `sendCodeSamples` + `redactSamples` + samples in enrich prompt | ✅ |
 
 ### DoD Фазы 8 (накопленный):
-- [x] `pnpm typecheck` — 8/8
-- [x] `pnpm test` — **116** tests (schema 32, canvas-core 16, ast-graph 38, semantic 23, session 7)
-- [x] `enrichCodemap` core: Mock provider + LLM provider with fallback
-- [x] `allowedPaths` filter: traces retain only locations within workspace
-- [x] `traceGuide` generated: "Where do nodes like [files] fit?"
-- [x] IPC handler: structural codemap → optional enrich → enriched in response
-- [x] Enrich button in RIGHT StructuralTraces: ✨ Enrich (LLM) → ⏳ Enriching… → enriched ✨
-- [x] `enriched: boolean` returned in IPC response, shown in UI
-- [x] LEFT highlight: click trace title → golden glow on matching canvas nodes
-- [x] `CanvasState.setHighlight` / `clearHighlight` — match by `semantic.fileAnchors`
-- [x] Highlight clears on Esc, node deselect, or new node select
-- [x] Cache split: `{id}.codemap` (structural) + `{id}.enriched.codemap` (LLM) — no overwrite
-- [x] Enrich packs only neighborhood files (anchors + dep graph radius 1) instead of entire workspace
+- [x] typecheck 8/8; tests green (canvas-core highlight + redactSamples units)
+- [x] enrichCodemap + path allowlist (fuzzy)
+- [x] IPC enrich + UI button + loading
+- [x] LEFT highlight via fileAnchors (rel/abs/basename)
+- [x] split cache structural / enriched
+- [x] neighborhood pack uses **relative** paths (not abs-only)
+- [x] Export bundle (folder, manifest.json) + Import .codemap / langgraph.codemap
+- [x] Privacy default OFF (`INFINITY_LLM_SEND_SAMPLES` ≠ `1`): sample bodies → placeholder
+- [x] Privacy ON: samples included in enrich prompt after `redactSamples()` (7 patterns)
+- [x] Manifests always secret-redacted before enrich LLM call
+- [x] `.env.example` documents `INFINITY_LLM_SEND_SAMPLES=0`
+- [x] `isSendCodeSamplesEnabled()` + `redactSamples` exported from `@infinity-canvas/semantic`
+
+### Residual deferred → Phase 9:
+- [ ] Apply same privacy gate to **semantic map** build path (buildSemanticMap still sends samples)
+- [ ] UI toggle for send samples (env-only today)
+- [ ] Import `.codemap` → auto-open traces in RIGHT (cache write only today)
+
+## Следующая фаза: 9 — Perf / Polish / Minimap / Resilience
 
 ## Инварианты (не нарушать)
 

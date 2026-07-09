@@ -18,6 +18,17 @@ export interface LlmConfig {
   apiKey?: string;
   model?: string;
   timeoutMs?: number;
+  /**
+   * If true, source file samples are sent to the LLM (after secret redact).
+   * Default false — set via INFINITY_LLM_SEND_SAMPLES=1.
+   * Read at call sites from env; also exposed on LlmConfig for future UI toggle.
+   */
+  sendCodeSamples?: boolean;
+}
+
+/** True only when INFINITY_LLM_SEND_SAMPLES=1 (default: do not send samples). */
+export function isSendCodeSamplesEnabled(): boolean {
+  return process.env.INFINITY_LLM_SEND_SAMPLES === '1';
 }
 
 // ── Mock Provider ─────────────────────────────────────
@@ -67,6 +78,7 @@ function readEnvConfig(): Partial<LlmConfig> {
     baseUrl: process.env.INFINITY_LLM_BASE_URL || process.env.OPENROUTER_BASE_URL || undefined,
     apiKey: process.env.INFINITY_LLM_API_KEY || process.env.OPENROUTER_API_KEY || undefined,
     model: process.env.INFINITY_LLM_MODEL || undefined,
+    sendCodeSamples: process.env.INFINITY_LLM_SEND_SAMPLES === '1' ? true : process.env.INFINITY_LLM_SEND_SAMPLES === '0' ? false : undefined,
   };
 }
 

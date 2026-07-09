@@ -4,7 +4,13 @@
 export { contextPacker } from './contextPacker';
 export type { ContextPack, ContextPackerOptions, FileReader } from './contextPacker';
 
-export { MockLLMProvider, OpenAICompatibleProvider, OpenRouterProvider, createProvider } from './llmProviders';
+export {
+  MockLLMProvider,
+  OpenAICompatibleProvider,
+  OpenRouterProvider,
+  createProvider,
+  isSendCodeSamplesEnabled,
+} from './llmProviders';
 export type { LLMProvider, ChatMessage, LlmConfig } from './llmProviders';
 
 export { buildSemanticMap } from './buildSemanticMap';
@@ -12,5 +18,5 @@ export type { SemanticMapResult } from './buildSemanticMap';
 
 export { SYSTEM_CODEMAP, EXAMPLE_CODEMAP_MINI, buildCodemapUserPrompt, projectCodemapToCanvas } from './prompts';
 
-export { enrichCodemap } from './enrichCodemap';
+export { enrichCodemap, redactSamples } from './enrichCodemap';
 export type { EnrichInput, EnrichResult } from './enrichCodemap';

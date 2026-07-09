@@ -225,4 +225,29 @@ describe('CanvasState', () => {
       expect(state.edges).toHaveLength(0);
     });
   });
+
+  describe('Highlight', () => {
+    it('matches relative and absolute-style paths via fileAnchors', () => {
+      const state = new CanvasState();
+      const n = state.createNode('Semantic', 0, 0);
+      n.semantic = { fileAnchors: ['packages/foo/src/bar.ts', 'src/index.js'] };
+
+      state.setHighlight(['/home/u/proj/packages/foo/src/bar.ts']);
+      expect(state.highlightNodeIds.has(n.id)).toBe(true);
+
+      state.clearHighlight();
+      expect(state.highlightNodeIds.size).toBe(0);
+
+      state.setHighlight(['src/index.js']);
+      expect(state.highlightNodeIds.has(n.id)).toBe(true);
+    });
+
+    it('matches by basename when needed', () => {
+      const state = new CanvasState();
+      const n = state.createNode('X', 0, 0);
+      n.semantic = { fileAnchors: ['deep/nested/helpers.ts'] };
+      state.setHighlight(['helpers.ts']);
+      expect(state.highlightNodeIds.has(n.id)).toBe(true);
+    });
+  });
 });

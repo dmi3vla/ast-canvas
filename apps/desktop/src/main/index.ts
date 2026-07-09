@@ -13,7 +13,15 @@ import {
   saveEnrichedCodemap,
   loadEnrichedCodemap,
 } from '@infinity-canvas/ast-graph';
-import { contextPacker, createProvider, MockLLMProvider, buildSemanticMap, enrichCodemap } from '@infinity-canvas/semantic';
+import {
+  contextPacker,
+  createProvider,
+  MockLLMProvider,
+  buildSemanticMap,
+  enrichCodemap,
+  redactSamples,
+  isSendCodeSamplesEnabled,
+} from '@infinity-canvas/semantic';
 import { serializeDocument } from '@infinity-canvas/schema';
 import { SessionStore } from '@infinity-canvas/session';
 
@@ -373,28 +381,67 @@ ipcMain.handle(
 
       // LLM Enrich
       if (enrich) {
-        // Build neighborhood: only files reachable from anchors (depth 2)
-        const anchorSet = new Set(fileAnchors.map(a => a.replace(/\\/g, '/')));
-        const centers = Object.keys(g.nodes).filter(
-          id => fileAnchors.some((a: string) => id.endsWith(a) || a.endsWith(id)),
-        );
-        const neighborhood = new Set<string>([
-          ...fileAnchors,
-          ...centers,
-          ...g.edges
-            .filter(e => centers.includes(e.from) || centers.includes(e.to))
-            .flatMap(e => [e.from, e.to]),
-        ].filter(p => !p.startsWith('external:')));
+        const norm = (p: string) => p.replace(/\\/g, '/').replace(/^\.\//, '');
+        const pathKey = (absOrRel: string) => {
+          const n = norm(absOrRel);
+          // Prefer path relative to workspace for stable matching
+          try {
+            const rel = relative(lastWorkspacePath!, n.startsWith('/') || /^[A-Za-z]:/.test(n) ? n : join(lastWorkspacePath!, n));
+            if (rel && !rel.startsWith('..')) return norm(rel);
+          } catch { /* ignore */ }
+          return n;
+        };
 
-        // Pack only neighborhood files
+        // Neighborhood: anchors + dep-graph radius-1 (relative ids)
+        const centers = Object.keys(g.nodes).filter(
+          id => fileAnchors.some((a: string) => id.endsWith(a) || a.endsWith(id) || pathKey(id) === pathKey(a)),
+        );
+        const neighborhood = new Set<string>(
+          [
+            ...fileAnchors.map(pathKey),
+            ...centers.map(pathKey),
+            ...g.edges
+              .filter(e => centers.includes(e.from) || centers.includes(e.to))
+              .flatMap(e => [e.from, e.to]),
+          ]
+            .map(pathKey)
+            .filter(p => p && !p.startsWith('external:')),
+        );
+
         const allFiles = await indexWorkspace(lastWorkspacePath);
-        const neighborhoodFiles = allFiles.filter(f => neighborhood.has(f.path.replace(/\\/g, '/')));
+        const neighborhoodFiles = allFiles.filter(f => {
+          const rel = norm(relative(lastWorkspacePath!, f.path));
+          const abs = norm(f.path);
+          return neighborhood.has(rel) || neighborhood.has(abs)
+            || [...neighborhood].some(n => rel.endsWith(n) || n.endsWith(rel));
+        });
+
         const pack = await contextPacker(
           neighborhoodFiles.length > 0 ? neighborhoodFiles : allFiles,
           async (p) => readFile(p, 'utf-8'),
           { budgetChars: 30_000 },
         );
         const llm = createProvider();
+
+        // Privacy: default OFF — do not send source samples to LLM.
+        // When ON, still scrub secrets (apiKey/token/Bearer/sk-...) via redactSamples.
+        const sendSamples = isSendCodeSamplesEnabled();
+        if (!sendSamples) {
+          pack.samples = pack.samples.map(s => ({
+            ...s,
+            content: `[code sample redacted: ${s.path}]`,
+          }));
+        } else {
+          pack.samples = pack.samples.map(s => ({
+            ...s,
+            content: redactSamples(s.content),
+          }));
+        }
+        // Always redact secrets in manifests (package.json etc. can hold tokens)
+        pack.manifests = pack.manifests.map(m => ({
+          ...m,
+          content: redactSamples(m.content),
+        }));
 
         const result = await enrichCodemap({
           structural: codemap,
@@ -408,6 +455,122 @@ ipcMain.handle(
       }
 
       return { codemap, fromCache: false, enriched: !!enrich };
+    } catch (err) {
+      return { error: String(err) };
+    }
+  },
+);
+
+// ── Export / Import ─────────────────────────────────────
+
+ipcMain.handle(
+  'workspace:exportBundle',
+  async (_event, workspacePath: string) => {
+    try {
+      if (!workspacePath) return { error: 'No workspace open' };
+
+      const result = await dialog.showSaveDialog(mainWindow!, {
+        title: 'Export Research Bundle',
+        defaultPath: 'infinity-bundle',
+        properties: ['createDirectory', 'showOverwriteConfirmation'],
+      });
+      if (result.canceled || !result.filePath) return { error: 'cancelled' };
+
+      const dest = result.filePath;
+      if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
+
+      const cacheDir = join(workspacePath, '.infinity-canvas');
+      const codemapsDir = join(cacheDir, 'codemaps');
+      const destCode = join(dest, 'codemaps');
+
+      const files: string[] = [];
+
+      // semantic-map.canvas
+      const mapPath = join(cacheDir, 'semantic-map.canvas');
+      if (existsSync(mapPath)) {
+        await writeFile(join(dest, 'semantic-map.canvas'), await readFile(mapPath));
+        files.push('semantic-map.canvas');
+      }
+
+      // codemaps/
+      if (existsSync(codemapsDir)) {
+        if (!existsSync(destCode)) mkdirSync(destCode, { recursive: true });
+        const entries = await readdir(codemapsDir);
+        for (const entry of entries) {
+          const src = join(codemapsDir, entry);
+          const dst = join(destCode, entry);
+          await writeFile(dst, await readFile(src));
+          files.push(`codemaps/${entry}`);
+        }
+      }
+
+      // dep-graph.json (optional)
+      const dgPath = join(cacheDir, 'dep-graph.json');
+      if (existsSync(dgPath)) {
+        await writeFile(join(dest, 'dep-graph.json'), await readFile(dgPath));
+        files.push('dep-graph.json');
+      }
+
+      // manifest
+      const manifest = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        workspaceName: workspacePath.split('/').pop() || workspacePath,
+        files,
+      };
+      await writeFile(join(dest, 'manifest.json'), JSON.stringify(manifest, null, 2));
+
+      return { ok: true, dest, manifest };
+    } catch (err) {
+      return { error: String(err) };
+    }
+  },
+);
+
+ipcMain.handle(
+  'workspace:importBundle',
+  async (_event, workspacePath: string | null) => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow!, {
+        title: 'Import Codemap',
+        filters: [{ name: 'Codemap / Bundle', extensions: ['codemap', 'json'] }],
+        properties: ['openFile'],
+      });
+      if (result.canceled || result.filePaths.length === 0) return { error: 'cancelled' };
+
+      const filePath = result.filePaths[0];
+      const raw = await readFile(filePath, 'utf-8');
+
+      // Try parse as codemap
+      const { parseCodemap } = await import('@infinity-canvas/schema');
+      const codemap = parseCodemap(raw);
+
+      // Save into workspace cache if workspace is open
+      if (workspacePath) {
+        const name = filePath.split('/').pop()!.replace(/\.(codemap|json)$/, '');
+        const destDir = join(workspacePath, '.infinity-canvas', 'codemaps');
+        if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+        await writeFile(join(destDir, `imported-${name}.codemap`), JSON.stringify(codemap, null, 2));
+      }
+
+      return { ok: true, codemap, sourcePath: filePath };
+    } catch (err) {
+      return { error: String(err) };
+    }
+  },
+);
+
+// Also support importing langgraph.codemap from workspace root
+ipcMain.handle(
+  'workspace:importLanggraph',
+  async (_event, workspacePath: string) => {
+    try {
+      const path = join(workspacePath, 'langgraph.codemap');
+      if (!existsSync(path)) return { error: 'langgraph.codemap not found in workspace root' };
+      const raw = await readFile(path, 'utf-8');
+      const { parseCodemap } = await import('@infinity-canvas/schema');
+      const codemap = parseCodemap(raw);
+      return { ok: true, codemap };
     } catch (err) {
       return { error: String(err) };
     }

@@ -62,6 +62,27 @@ interface ElectronAPI {
     error?: string;
     needsWorkspace?: boolean;
   }>;
+
+  // Export / Import
+  exportBundle: (workspacePath: string) => Promise<{
+    ok?: boolean;
+    dest?: string;
+    manifest?: { version: number; exportedAt: string; workspaceName: string; files: string[] };
+    error?: string;
+  }>;
+
+  importBundle: (workspacePath: string | null) => Promise<{
+    ok?: boolean;
+    codemap?: any;
+    sourcePath?: string;
+    error?: string;
+  }>;
+
+  importLanggraph: (workspacePath: string) => Promise<{
+    ok?: boolean;
+    codemap?: any;
+    error?: string;
+  }>;
 }
 
 declare global {

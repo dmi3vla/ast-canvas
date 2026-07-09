@@ -9,9 +9,12 @@ interface ToolbarProps {
   onOpenFolder: () => void;
   onRegenerate: () => void;
   onLoadDemo: () => void;
+  onExport: () => void;
+  onImport: () => void;
+  onImportLanggraph: () => void;
 }
 
-export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fromCache, onOpenFolder, onRegenerate, onLoadDemo }: ToolbarProps) {
+export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fromCache, onOpenFolder, onRegenerate, onLoadDemo, onExport, onImport, onImportLanggraph }: ToolbarProps) {
   return (
     <div className="toolbar">
       <span className="toolbar__title">∞ Infinity Canvas</span>
@@ -39,7 +42,23 @@ export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fro
         </>
       )}
       <span className="toolbar__spacer" />
-      <span className="toolbar__title" style={{ opacity: 0.5 }}>Phase 4 — Semantic Map</span>
+      {workspacePath && (
+        <>
+          <button onClick={onExport} title="Export research bundle" style={{ fontSize: 11 }}>
+            📤 Export
+          </button>
+          <button onClick={onImport} title="Import .codemap file" style={{ fontSize: 11 }}>
+            📥 Import
+          </button>
+          <button onClick={onImportLanggraph} title="Import langgraph.codemap from workspace root" style={{ fontSize: 11 }}>
+            📥 langgraph
+          </button>
+        </>
+      )}
+      <button onClick={onLoadDemo} title="Load demo map" style={{ fontSize: 11, background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
+        📋 Demo
+      </button>
+      <span className="toolbar__title" style={{ opacity: 0.5 }}>Phase 8 — LLM Enrich</span>
     </div>
   );
 }
