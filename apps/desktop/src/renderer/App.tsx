@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { RightMode } from '@infinity-canvas/detail-pane';
-import type { CanvasViewHandle } from '@infinity-canvas/canvas-core';
+import type { CanvasViewHandle, ICNode } from '@infinity-canvas/canvas-core';
 import { Toolbar } from './components/Toolbar';
 import { LeftPane } from './components/LeftPane';
 import { Splitter } from './components/Splitter';
@@ -11,6 +11,7 @@ export type { RightMode };
 export interface AppState {
   leftRatio: number;
   selectedNodeId: string | null;
+  selectedNode: ICNode | null;
   rightMode: RightMode;
   source?: { path: string; line: number };
   workspacePath: string | null;
@@ -24,6 +25,7 @@ export function App() {
   const [state, setState] = useState<AppState>({
     leftRatio: 0.6,
     selectedNodeId: null,
+    selectedNode: null,
     rightMode: 'empty',
     workspacePath: null,
     fileCount: 0,
@@ -50,6 +52,10 @@ export function App() {
 
       if (result.json) {
         setCanvasData(result.json);
+        // Also push into canvas handle (covers race if effect already ran)
+        queueMicrotask(() => {
+          canvasRef.current?.loadData(result.json!);
+        });
       }
 
       setState(s => ({
@@ -60,6 +66,7 @@ export function App() {
         fromCache: result.fromCache ?? false,
         isLoading: false,
         selectedNodeId: null,
+        selectedNode: null,
         rightMode: 'empty',
         source: undefined,
       }));
@@ -93,9 +100,21 @@ export function App() {
   }, [buildMap]);
 
   const handleSelectNode = useCallback((nodeId: string | null) => {
+    const node = nodeId
+      ? (canvasRef.current?.state.getNodeById(nodeId) ?? null)
+      : null;
+    // clone plain fields for React state
+    const snap: ICNode | null = node
+      ? {
+          ...node,
+          semantic: node.semantic ? { ...node.semantic } : undefined,
+          graph: node.graph ? { ...node.graph } : undefined,
+        }
+      : null;
     setState(s => ({
       ...s,
       selectedNodeId: nodeId,
+      selectedNode: snap,
       rightMode: nodeId ? 'content' : 'empty',
       source: undefined,
     }));
@@ -106,11 +125,18 @@ export function App() {
   }, []);
 
   const handleOpenSource = useCallback((path: string, line: number) => {
-    setState(s => ({
-      ...s,
-      rightMode: 'source',
-      source: { path, line },
-    }));
+    setState(s => {
+      // Resolve relative paths against workspace for main path guard
+      let abs = path;
+      if (s.workspacePath && !path.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(path)) {
+        abs = `${s.workspacePath.replace(/\/$/, '')}/${path.replace(/^\.\//, '')}`;
+      }
+      return {
+        ...s,
+        rightMode: 'source',
+        source: { path: abs, line },
+      };
+    });
   }, []);
 
   const handleSetRatio = useCallback((ratio: number) => {
@@ -181,6 +207,7 @@ export function App() {
           <RightPane
             mode={state.rightMode}
             nodeId={state.selectedNodeId}
+            node={state.selectedNode}
             source={state.source}
             onSetMode={handleSetRightMode}
             onOpenSource={handleOpenSource}

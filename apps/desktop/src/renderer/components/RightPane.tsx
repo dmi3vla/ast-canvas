@@ -1,61 +1,17 @@
 import React from 'react';
 import type { RightMode } from '@infinity-canvas/detail-pane';
+import type { ICNode } from '@infinity-canvas/canvas-core';
 
 interface RightPaneProps {
   mode: RightMode;
   nodeId: string | null;
+  node: ICNode | null;
   source?: { path: string; line: number };
   onSetMode: (mode: RightMode) => void;
   onOpenSource: (path: string, line: number) => void;
 }
 
-const MOCK_CODEMAP_DEPS_IN = [
-  { icon: '📦', name: 'packages/canvas-core', symbols: 'CanvasState, InputHandler' },
-  { icon: '📦', name: 'packages/schema', symbols: 'ICNode, ICEdge' },
-  { icon: '📦', name: 'react', symbols: 'useState, useEffect' },
-];
-
-const MOCK_CODEMAP_DERIVES_OUT = [
-  { icon: '📤', name: 'apps/desktop/src/renderer/App.tsx', symbols: 'App component' },
-  { icon: '📤', name: 'apps/desktop/src/renderer/components/RightPane.tsx', symbols: 'RightPane' },
-];
-
-const MOCK_CODEMAP_LOCATIONS = [
-  { id: '1a', path: 'src/main/index.ts', line: 42, desc: 'createWindow() — BrowserWindow setup' },
-  { id: '1b', path: 'src/main/index.ts', line: 88, desc: 'IPC handler: dialog:openWorkspace' },
-  { id: '2a', path: 'src/renderer/App.tsx', line: 60, desc: 'handleSelectNode — node selection handler' },
-];
-
-const MOCK_SOURCE = `// src/main/index.ts — Infinity Canvas main process
-
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-
-function createWindow(): void {
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1024,
-    minHeight: 600,
-    title: 'Infinity Canvas',
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-}
-
-// IPC: Open workspace folder
-ipcMain.handle('dialog:openWorkspace', async () => {
-  const result = await dialog.showOpenDialog(mainWindow!, {
-    properties: ['openDirectory'],
-    title: 'Open Workspace Folder',
-  });
-  return result.canceled ? null : result.filePaths[0];
-});`;
-
-export function RightPane({ mode, nodeId, source, onSetMode, onOpenSource }: RightPaneProps) {
-  // Empty state
+export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource }: RightPaneProps) {
   if (mode === 'empty' || !nodeId) {
     return (
       <div className="right-pane">
@@ -70,11 +26,20 @@ export function RightPane({ mode, nodeId, source, onSetMode, onOpenSource }: Rig
     );
   }
 
+  const title = node?.text?.split('\n')[0]?.replace(/^#+\s*/, '') || nodeId;
+  const summary = node?.semantic?.summary || node?.text || `Node ${nodeId}`;
+  const anchors = node?.semantic?.fileAnchors || (node?.file ? [node.file] : []);
+  const kind = node?.semantic?.kind || node?.type || 'text';
+
+  const openFirstAnchor = () => {
+    if (anchors[0]) onOpenSource(anchors[0], 1);
+    else if (node?.graph?.path) onOpenSource(node.graph.path, 1);
+  };
+
   return (
     <div className="right-pane">
-      {/* Header */}
       <div className="right-pane__header">
-        <div className="right-pane__title">Node: {nodeId}</div>
+        <div className="right-pane__title" title={nodeId}>{title}</div>
         <div className="right-pane__actions">
           <button
             onClick={() => onSetMode('content')}
@@ -89,7 +54,7 @@ export function RightPane({ mode, nodeId, source, onSetMode, onOpenSource }: Rig
             🔍 Codemap
           </button>
           <button
-            onClick={() => onOpenSource('src/main/index.ts', 42)}
+            onClick={openFirstAnchor}
             style={mode === 'source' ? { background: 'var(--accent-dim)', borderColor: 'var(--accent)' } : {}}
           >
             📝 Source
@@ -97,111 +62,175 @@ export function RightPane({ mode, nodeId, source, onSetMode, onOpenSource }: Rig
         </div>
       </div>
 
-      {/* Content mode */}
       {mode === 'content' && (
         <div className="right-pane__content">
-          <p className="right-pane__summary">
-            Canvas node <strong>{nodeId}</strong> is selected.
-            Click <em>Codemap</em> to view dependencies and traces,
-            or <em>Source</em> to jump to the source file.
+          <p className="right-pane__summary" style={{ whiteSpace: 'pre-wrap' }}>
+            {summary}
           </p>
+          {node?.text && node.semantic?.summary && (
+            <pre style={{
+              marginTop: 12,
+              padding: 10,
+              background: 'var(--cards-bg, #1a1a1a)',
+              borderRadius: 6,
+              fontSize: 12,
+              color: 'var(--text-secondary, #aaa)',
+              whiteSpace: 'pre-wrap',
+              maxHeight: 200,
+              overflow: 'auto',
+            }}>
+              {node.text}
+            </pre>
+          )}
           <div className="right-pane__meta">
             <div className="right-pane__meta-item">
-              <span className="right-pane__meta-value">1</span>
-              <span className="right-pane__meta-label">Node</span>
+              <span className="right-pane__meta-value">{kind}</span>
+              <span className="right-pane__meta-label">Kind</span>
             </div>
             <div className="right-pane__meta-item">
-              <span className="right-pane__meta-value">text</span>
+              <span className="right-pane__meta-value">{node?.type || '—'}</span>
               <span className="right-pane__meta-label">Type</span>
             </div>
+            <div className="right-pane__meta-item">
+              <span className="right-pane__meta-value" style={{ fontSize: 11 }}>{nodeId}</span>
+              <span className="right-pane__meta-label">Id</span>
+            </div>
           </div>
+          {anchors.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div className="codemap-section__title">📎 File anchors</div>
+              <ul className="codemap-list">
+                {anchors.map((a) => (
+                  <li
+                    key={a}
+                    className="codemap-list__item"
+                    onClick={() => onOpenSource(a, 1)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="codemap-list__icon">📄</span>
+                    <span style={{ color: 'var(--accent)' }}>{a}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Codemap mode */}
       {mode === 'codemap' && (
         <div className="right-pane__content">
           <div className="codemap-section">
-            <div className="codemap-section__title">📦 Deps In (imports)</div>
-            <ul className="codemap-list">
-              {MOCK_CODEMAP_DEPS_IN.map((dep, i) => (
-                <li key={i} className="codemap-list__item">
-                  <span className="codemap-list__icon">{dep.icon}</span>
-                  <span style={{ fontWeight: 500 }}>{dep.name}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>→ {dep.symbols}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="codemap-section__title">📍 Anchors / traces (from node)</div>
+            {anchors.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                No file anchors on this node yet. Phase 5–7 will fill deps from DepGraph / codemap.
+              </p>
+            ) : (
+              <ul className="codemap-list">
+                {anchors.map((a, i) => (
+                  <li
+                    key={a}
+                    className="codemap-list__item"
+                    onClick={() => onOpenSource(a, 1)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="codemap-list__icon">[{String.fromCharCode(97 + (i % 26))}]</span>
+                    <span style={{ color: 'var(--accent)' }}>{a}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-
-          <div className="codemap-section">
-            <div className="codemap-section__title">📤 Derives Out (used by)</div>
-            <ul className="codemap-list">
-              {MOCK_CODEMAP_DERIVES_OUT.map((dep, i) => (
-                <li key={i} className="codemap-list__item">
-                  <span className="codemap-list__icon">{dep.icon}</span>
-                  <span style={{ fontWeight: 500 }}>{dep.name}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>→ {dep.symbols}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="codemap-section">
-            <div className="codemap-section__title">📍 Locations (traces)</div>
-            <ul className="codemap-list">
-              {MOCK_CODEMAP_LOCATIONS.map((loc) => (
-                <li
-                  key={loc.id}
-                  className="codemap-list__item"
-                  onClick={() => onOpenSource(loc.path, loc.line)}
-                >
-                  <span className="codemap-list__icon">[{loc.id}]</span>
-                  <span style={{ color: 'var(--accent)' }}>{loc.path}:{loc.line}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>{loc.desc}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {node?.semantic?.traceIds && node.semantic.traceIds.length > 0 && (
+            <div className="codemap-section">
+              <div className="codemap-section__title">🔗 Trace ids</div>
+              <ul className="codemap-list">
+                {node.semantic.traceIds.map((t) => (
+                  <li key={t} className="codemap-list__item">{t}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Source mode */}
       {mode === 'source' && (
         <div className="right-pane__content">
           {source ? (
             <>
               <div className="source-view__header">
-                📄 {source.path} (line {source.line})
+                📄 {source.path}{source.line ? ` (line ${source.line})` : ''}
               </div>
-              <div className="source-view">
-                {MOCK_SOURCE.split('\n').map((line, i) => {
-                  const lineNum = i + 1;
-                  const isHighlighted = lineNum === source.line;
-                  return (
-                    <div key={i} style={{ display: 'flex' }}>
-                      <span className={`source-view__line ${isHighlighted ? 'source-view__line--highlight' : ''}`}>
-                        {String(lineNum).padStart(3, ' ')}
-                      </span>
-                      <span style={{ color: isHighlighted ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                        {line}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 12 }}>
+                Open this path in the workspace via file read (Phase 7: monaco).
+                Path is relative or absolute under the opened folder.
+              </p>
+              <SourcePreview path={source.path} line={source.line} />
             </>
           ) : (
-            <div className="right-pane__empty">
-              <div className="right-pane__empty-icon">📝</div>
-              <div className="right-pane__empty-text">No source file selected</div>
-              <div className="right-pane__empty-hint">
-                Click a location in <strong>Codemap</strong> mode to view source here.
-              </div>
-            </div>
+            <p style={{ color: 'var(--text-muted)' }}>No source path for this node.</p>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function SourcePreview({ path, line }: { path: string; line: number }) {
+  const [text, setText] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!window.electronAPI?.readFile) {
+        setError('readFile API unavailable');
+        return;
+      }
+      // Try as-is; main only allows paths under workspace
+      const res = await window.electronAPI.readFile(path);
+      if (cancelled) return;
+      if (res.error) {
+        // try join is not available — show error
+        setError(res.error);
+        setText(null);
+      } else {
+        setText(res.content ?? '');
+        setError(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [path]);
+
+  if (error) {
+    return (
+      <pre className="source-view" style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+        {error}
+        {'\n'}Hint: open a workspace folder first; paths must be under workspace root.
+      </pre>
+    );
+  }
+  if (text == null) {
+    return <div style={{ color: 'var(--text-muted)' }}>Loading…</div>;
+  }
+
+  const lines = text.split('\n');
+  return (
+    <div className="source-view">
+      {lines.map((ln, i) => {
+        const lineNum = i + 1;
+        const isHighlighted = lineNum === line;
+        return (
+          <div key={i} style={{ display: 'flex' }}>
+            <span className={`source-view__line ${isHighlighted ? 'source-view__line--highlight' : ''}`}>
+              {String(lineNum).padStart(4, ' ')}
+            </span>
+            <span style={{ color: isHighlighted ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+              {ln || ' '}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { CanvasState } from './CanvasState';
 import { CanvasRenderer } from './CanvasRenderer';
 import { InputHandler } from './InputHandler';
@@ -7,10 +7,12 @@ export interface CanvasViewHandle {
   state: CanvasState;
   loadData: (json: string) => void;
   exportData: () => string;
+  fitView: () => void;
 }
 
 interface CanvasViewProps {
   onSelectNode?: (nodeId: string | null) => void;
+  /** When this string changes, canvas reloads document (replaces demo seed). */
   initialData?: string | null;
 }
 
@@ -20,8 +22,36 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
     const stateRef = useRef<CanvasState>(new CanvasState());
     const rendererRef = useRef<CanvasRenderer>(new CanvasRenderer());
     const inputRef = useRef<InputHandler | null>(null);
+    const onSelectRef = useRef(onSelectNode);
+    onSelectRef.current = onSelectNode;
 
-    // Setup
+    const applyDocument = (json: string | null | undefined, fit: boolean) => {
+      const state = stateRef.current;
+      const renderer = rendererRef.current;
+      const canvas = canvasRef.current;
+
+      if (json) {
+        try {
+          const parsed = JSON.parse(json);
+          state.loadCanvasData(parsed);
+        } catch (err) {
+          console.warn('[CanvasView] failed to parse canvas JSON', err);
+          return;
+        }
+      } else if (state.nodes.length === 0) {
+        seedDemoNodes(state);
+      }
+
+      if (canvas) {
+        renderer.resize();
+        if (fit && state.nodes.length > 0) {
+          state.fitView(canvas.width, canvas.height);
+        }
+      }
+      renderer.render(state);
+    };
+
+    // Mount: attach renderer + input once
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -31,12 +61,10 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
 
       renderer.attach(canvas);
 
-      // Selection → parent callback
       state.onSelectionChange = (nodeId) => {
-        onSelectNode?.(nodeId);
+        onSelectRef.current?.(nodeId);
       };
 
-      // State change → re-render
       state.onStateChange = () => {
         renderer.render(state);
       };
@@ -45,18 +73,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
       input.setRenderCallback(() => renderer.render(state));
       inputRef.current = input;
 
-      // Initial data
-      if (initialData) {
-        try {
-          const parsed = JSON.parse(initialData);
-          state.loadCanvasData(parsed);
-        } catch { /* ignore parse errors */ }
-      } else {
-        // Seed with demo nodes
-        seedDemoNodes(state);
-      }
-
-      renderer.render(state);
+      // First paint: initialData if already present, else demo
+      applyDocument(initialData, Boolean(initialData));
 
       const handleResize = () => {
         renderer.resize();
@@ -69,19 +87,35 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
         input.destroy();
         renderer.detach();
       };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- mount once
+    }, []);
+
+    // When parent sets canvas JSON after async buildSemanticMap — reload map
+    useEffect(() => {
+      if (initialData == null) return;
+      // Skip if input not ready yet (mount effect will apply)
+      if (!inputRef.current && !canvasRef.current) return;
+      applyDocument(initialData, true);
+      // Clear selection after load
+      stateRef.current.clearSelection();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialData]);
 
     useImperativeHandle(ref, () => ({
       state: stateRef.current,
       loadData: (json: string) => {
-        try {
-          const data = JSON.parse(json);
-          stateRef.current.loadCanvasData(data);
-          rendererRef.current.render(stateRef.current);
-        } catch { /* ignore */ }
+        applyDocument(json, true);
+        stateRef.current.clearSelection();
       },
       exportData: () => {
         return JSON.stringify(stateRef.current.exportCanvasData(), null, 2);
+      },
+      fitView: () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        rendererRef.current.resize();
+        stateRef.current.fitView(canvas.width, canvas.height);
+        rendererRef.current.render(stateRef.current);
       },
     }), []);
 
@@ -101,13 +135,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
 );
 
 function seedDemoNodes(state: CanvasState): void {
-  state.createNode('## 🏗️ Architecture Overview\n\nElectron main process + React renderer.\nSplit-pane layout with resizable panels.', -300, -150);
+  state.createNode('## Architecture Overview\n\nElectron main process + React renderer.\nSplit-pane layout with resizable panels.', -300, -150);
   state.createNode('### Canvas Core\n\nCanvas2D rendering engine.\nPan, zoom, drag, connections.\nObsidian .canvas format.', 100, -150);
   state.createNode('README.md\n\nProject documentation.\nSetup instructions.', 500, -150);
   state.createNode('IPC Bridge\n\ncontextBridge API.\nTyped contracts.', -300, 150);
   state.createNode('AppShell\n\nLEFT|RIGHT split.\n4 detail modes.', 100, 150);
 
-  // Edges
   const nodes = state.nodes;
   if (nodes.length >= 5) {
     state.createEdge(nodes[0].id, nodes[1].id, 'right', 'left');

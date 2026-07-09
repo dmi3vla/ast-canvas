@@ -130,38 +130,41 @@ export class CanvasRenderer {
     this.roundRect(ctx, x, y, width, height, radius);
     ctx.stroke();
 
-    // Text
-    const text = node.text || node.file || '(empty)';
-    const fontSize = 13;
+    // Text — prefer semantic summary for cleaner cards
+    const raw = node.semantic?.summary
+      ? `${node.text?.split('\n')[0] || node.id}\n${node.semantic.summary}`
+      : (node.text || node.file || '(empty)');
+    const text = stripMarkdownNoise(raw);
+    const fontSize = 12;
     ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
     ctx.fillStyle = COLORS.nodeText;
     ctx.textBaseline = 'top';
 
-    // Word-wrap text within node width
+    // Wrap by newlines first, then by words
     const maxWidth = width - 20;
-    const lineHeight = fontSize * 1.4;
-    const words = text.split(' ');
-    let line = '';
-    let lineY = y + 12;
+    const lineHeight = fontSize * 1.35;
+    let lineY = y + 10;
+    const paragraphs = text.split('\n');
 
-    for (const word of words) {
-      const testLine = line ? `${line} ${word}` : word;
-      const metrics = ctx.measureText(testLine);
-
-      if (metrics.width > maxWidth && line) {
-        ctx.fillText(line, x + 10, lineY);
-        line = word;
-        lineY += lineHeight;
-        if (lineY > y + height - 20) break; // Stop if overflow
-      } else {
-        line = testLine;
+    outer: for (const para of paragraphs) {
+      const words = para.split(/\s+/).filter(Boolean);
+      let line = '';
+      for (const word of words) {
+        const testLine = line ? `${line} ${word}` : word;
+        if (ctx.measureText(testLine).width > maxWidth && line) {
+          ctx.fillText(line, x + 10, lineY);
+          line = word;
+          lineY += lineHeight;
+          if (lineY > y + height - 18) break outer;
+        } else {
+          line = testLine;
+        }
       }
-    }
-    if (line && lineY <= y + height - 20) {
-      ctx.fillText(line, x + 10, lineY);
-    } else if (lineY > y + height - 20) {
-      // Overflow indicator
-      ctx.fillText(line.slice(0, 20) + '…', x + 10, lineY - lineHeight);
+      if (line) {
+        ctx.fillText(line, x + 10, lineY);
+        lineY += lineHeight;
+        if (lineY > y + height - 18) break;
+      }
     }
 
     // Connection points (4 sides, centered)
@@ -250,4 +253,14 @@ export class CanvasRenderer {
     ctx.arcTo(x, y, x + r, y, r);
     ctx.closePath();
   }
+}
+
+/** Strip markdown markers for cleaner canvas labels */
+function stripMarkdownNoise(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .trim();
 }

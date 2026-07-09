@@ -1,11 +1,24 @@
 // ── Canvas Document Types (Obsidian .canvas format + extensions) ──
-// Runtime types for canvas-core. Canonical validation types: @infinity-canvas/schema.
+// Runtime types for canvas-core. Canonical validation: @infinity-canvas/schema.
 
 /** Side of a node where an edge attaches */
 export type NodeSide = 'top' | 'bottom' | 'left' | 'right';
 
 /** Node type in Obsidian canvas format */
 export type NodeType = 'text' | 'file' | 'semantic' | 'group';
+
+export interface SemanticExt {
+  kind?: string;
+  summary?: string;
+  traceIds?: string[];
+  fileAnchors?: string[];
+}
+
+export interface GraphExt {
+  path?: string;
+  symbol?: string;
+  role?: string;
+}
 
 /** A single node on the canvas */
 export interface ICNode {
@@ -16,13 +29,10 @@ export interface ICNode {
   width: number;
   height: number;
   color?: string;
-
-  // text node
   text?: string;
-
-  // file node
   file?: string;
-
+  semantic?: SemanticExt;
+  graph?: GraphExt;
   // runtime state (not serialized to .canvas)
   isSelected: boolean;
 }
@@ -44,7 +54,7 @@ export interface CanvasDocument {
   edges: ICEdge[];
 }
 
-/** Serialized node format (Obsidian-compatible) */
+/** Serialized node format (Obsidian-compatible + extensions) */
 export interface SerializedNode {
   id: string;
   type: string;
@@ -55,6 +65,8 @@ export interface SerializedNode {
   color?: string;
   text?: string;
   file?: string;
+  semantic?: SemanticExt;
+  graph?: GraphExt;
 }
 
 /** Serialized edge format (Obsidian-compatible) */
@@ -65,6 +77,7 @@ export interface SerializedEdge {
   fromSide?: string;
   toSide?: string;
   label?: string;
+  kind?: string;
 }
 
 /** Viewport state */

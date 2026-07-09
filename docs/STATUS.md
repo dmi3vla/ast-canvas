@@ -93,10 +93,21 @@
 - 5.3 — Wire dep-graph to RIGHT codemap panel
 - 5.4 — Token references (lightweight, file-level)
 
-### Known residual (Phase 4):
-- [ ] `canvas-core` types still independent from `schema` (dual types, non-blocking)
-- [ ] OpenRouter provider not tested (requires API key)
-- [ ] Codemap traces not generated (deferred → Phase 7)
+### Known residual (Phase 4 / UX from docs/1-3.png review):
+- [x] **P1** `CanvasView` only applied `initialData` on mount → after `buildMap` UI stayed on **demo seed** (screenshots). Fixed: react to `initialData` + `loadData` + `fitView`
+- [x] RIGHT content was mock (`Node: node_9`); now shows node text/summary/anchors
+- [x] Node label rendering: newlines + strip `#` markdown
+- [x] load/export preserve `semantic`/`graph` on nodes
+- [ ] Toolbar not visible on screenshots when no workspace — Open Folder first / auto-load
+- [ ] Source needs path under workspace (resolved relative→abs); monaco later
+- [ ] Real DepGraph deps (not anchors only) → Phase 5–6
+- [ ] `canvas-core` types still independent from `schema` (non-blocking)
+- [ ] Dual demo vs map: empty state without workspace still shows demo seed (OK)
+
+### Screenshot notes (`docs/1.png` `2.png` `3.png`):
+LEFT = demo seed (Architecture / Canvas Core / IPC / AppShell), not LLM map —
+caused by P1. After fix: Open Folder or Regenerate should replace demo.
+RIGHT codemap/source were placeholder mocks — content path fixed; deps still Phase 5.
 
 ```
 infinity-canvas/

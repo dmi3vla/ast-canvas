@@ -1,4 +1,5 @@
 import type { ICNode, ICEdge, CanvasDocument, SerializedNode, SerializedEdge, Viewport, NodeSide } from './types';
+// ICEdge used in loadCanvasData kind cast
 
 export type StateChangeCallback = () => void;
 export type SelectionChangeCallback = (nodeId: string | null) => void;
@@ -178,6 +179,8 @@ export class CanvasState {
         } else if (n.text) {
           base.text = n.text;
         }
+        if (n.semantic) base.semantic = { ...n.semantic };
+        if (n.graph) base.graph = { ...n.graph };
         return base;
       }),
       edges: this.edges.map(e => ({
@@ -186,39 +189,37 @@ export class CanvasState {
         toNode: e.toNode,
         fromSide: e.fromSide || 'right',
         toSide: e.toSide || 'left',
+        label: e.label,
+        kind: e.kind,
       })),
     };
   }
 
   loadCanvasData(data: { nodes?: SerializedNode[]; edges?: SerializedEdge[] }): void {
-    // Preserve viewport
-    const vp = this.getViewport();
-
     this.nodes = [];
     this.edges = [];
     this.selectedNodeIds.clear();
     this.nodeCounter = 0;
-    this.offsetX = vp.offsetX;
-    this.offsetY = vp.offsetY;
-    this.scale = vp.scale;
 
     if (data.nodes && Array.isArray(data.nodes)) {
       for (const nd of data.nodes) {
         const node: ICNode = {
           id: nd.id,
           type: (nd.type as ICNode['type']) || 'text',
-          x: nd.x || 100,
-          y: nd.y || 100,
+          x: nd.x ?? 100,
+          y: nd.y ?? 100,
           width: nd.width || 250,
           height: nd.height || 120,
           color: nd.color,
           text: nd.text,
           file: nd.file,
+          semantic: nd.semantic ? { ...nd.semantic } : undefined,
+          graph: nd.graph ? { ...nd.graph } : undefined,
           isSelected: false,
         };
         this.nodes.push(node);
 
-        const num = parseInt(node.id.replace(/^(node_|file_)/, ''), 10);
+        const num = parseInt(String(node.id).replace(/^(node_|file_)/, ''), 10);
         if (!isNaN(num) && num > this.nodeCounter) {
           this.nodeCounter = num;
         }
@@ -237,11 +238,42 @@ export class CanvasState {
             fromSide: ed.fromSide as NodeSide | undefined,
             toSide: ed.toSide as NodeSide | undefined,
             label: ed.label,
+            kind: ed.kind as ICEdge['kind'],
           });
         }
       }
     }
 
+    this.notifyStateChange();
+  }
+
+  /**
+   * Fit all nodes into a viewport of given pixel size (canvas CSS size).
+   * padding — margin in screen pixels.
+   */
+  fitView(viewW: number, viewH: number, padding = 48): void {
+    if (this.nodes.length === 0 || viewW <= 0 || viewH <= 0) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of this.nodes) {
+      minX = Math.min(minX, n.x);
+      minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x + n.width);
+      maxY = Math.max(maxY, n.y + n.height);
+    }
+
+    const worldW = Math.max(maxX - minX, 1);
+    const worldH = Math.max(maxY - minY, 1);
+    const scale = Math.max(0.15, Math.min(1.5, Math.min(
+      (viewW - padding * 2) / worldW,
+      (viewH - padding * 2) / worldH,
+    )));
+
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    this.scale = scale;
+    this.offsetX = viewW / 2 - cx * scale;
+    this.offsetY = viewH / 2 - cy * scale;
     this.notifyStateChange();
   }
 
