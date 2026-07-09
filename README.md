@@ -64,7 +64,7 @@ infinity-canvas/
 - **Canvas:** Canvas2D (ported from luisfernando.infinite-canvas)
 - **Build:** electron-vite + electron-builder
 - **Package manager:** pnpm (workspaces)
-- **Testing:** vitest (118+ tests)
+- **Testing:** vitest (~123 unit tests; no Playwright e2e yet)
 
 ## Features
 
@@ -93,11 +93,14 @@ Without `.env`, Mock provider is used (no API needed).
 ## Packaging
 
 ```bash
-cd apps/desktop
+# from monorepo root (or cd apps/desktop)
+pnpm pack          # unpacked dir only (faster smoke)
 pnpm dist:linux    # AppImage + deb
-pnpm dist:mac      # dmg
-pnpm dist:win      # NSIS installer
+pnpm dist:mac      # dmg (mac host)
+pnpm dist:win      # NSIS (win host / wine)
 ```
+
+Requires network once for Electron binary download. Output: `apps/desktop/dist/`.
 
 ## Development Status
 
@@ -112,9 +115,11 @@ pnpm dist:win      # NSIS installer
 | 7 — RIGHT Codemap + Source | ✅ |
 | 8 — LLM Enrich + Export/Import + Privacy | ✅ |
 | 9 — Perf (cull) + Minimap + Logs | ✅ |
-| 10 — Ship (packaging + docs) | 🔄 |
+| 10 — Ship (packaging config + README) | ✅ config / pack verified |
 
 See [`docs/STATUS.md`](docs/STATUS.md) for detailed DoD per phase.
+
+**Residual (optional):** 9.5 UX polish · true e2e · ARCHITECTURE / USER_GUIDE docs · app icons.
 
 ## License
 

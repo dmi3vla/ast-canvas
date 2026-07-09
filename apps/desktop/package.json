@@ -1,8 +1,9 @@
 {
   "name": "@infinity-canvas/desktop",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Infinity Canvas Electron Desktop App",
+  "author": "Infinity Canvas",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -21,6 +22,7 @@
   "build": {
     "appId": "dev.infinity-canvas.app",
     "productName": "Infinity Canvas",
+    "executableName": "infinity-canvas",
     "directories": {
       "output": "dist"
     },
@@ -30,7 +32,8 @@
     ],
     "linux": {
       "target": ["AppImage", "deb"],
-      "category": "Development"
+      "category": "Development",
+      "executableName": "infinity-canvas"
     },
     "mac": {
       "target": ["dmg"],

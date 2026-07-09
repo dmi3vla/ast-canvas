@@ -1,8 +1,8 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-10  
-> Текущая фаза: **10 — Ship** ✅ (packaging + README + docs)  
-> Phase 8 ✅ closed (8.1–8.6)
+> Текущая фаза: **MVP research complete** (phases 1–10 core)  
+> Residual: 9.5 UX · Playwright e2e · ARCHITECTURE/USER_GUIDE · icons/signing
 
 ---
 
@@ -235,24 +235,29 @@
 - [x] Logs: `.infinity-canvas/logs/app.log` JSON lines; size from disk; map + enrich + export; sanitize secrets
 - [ ] 9.5 UI toggle / import UX / click-dep / Ctrl+F
 
-## Фаза 10 — Ship ✅
+## Фаза 10 — Ship ✅ (MVP packaging + docs; not full production)
 
 | Этап | Артефакт | Статус |
 |------|----------|:------:|
-| 10.1 | E2E smoke: vitest unit suite covers 119 tests (schema/canvas/ast/semantic) | ✅ |
-| 10.2 | electron-builder config: AppImage/deb/dmg/nsis + build scripts | ✅ |
-| 10.3 | README: features, LLM config, packaging, dev status | ✅ |
-| 10.4 | Demo: `docs/demo_project_map.canvas` (21 nodes, 34 edges) | ✅ (from Phase 4) |
+| 10.1 | Unit test suite (vitest) — **not** Playwright e2e | ✅ (~123 tests) |
+| 10.2 | electron-builder: AppImage/deb/dmg/nsis; `pack`/`dist:*` scripts; linux `--dir` verified | ✅ |
+| 10.3 | README: features, LLM env, packaging cmds, phase table | ✅ |
+| 10.4 | Demo: `docs/demo_project_map.canvas` (21 nodes, 34 edges) | ✅ (earlier phase) |
 
 ### DoD Фазы 10:
 - [x] `pnpm typecheck` — 8/8
-- [x] `pnpm test` — **119** tests
-- [x] `electron-builder` config in `apps/desktop/package.json` (linux/mac/win)
-- [x] README updated: features list, LLM config, packaging cmds, phase status
-- [x] Demo canvas present and valid (Zod parse OK)
-- [x] `.gitignore` covers `.env*`, build artifacts
+- [x] `pnpm test` — **123** (schema 32, canvas-core 18, ast-graph 38, semantic 28, session 7)
+- [x] `electron-builder` in `apps/desktop/package.json` (linux/mac/win targets)
+- [x] `pnpm build` (electron-vite) green; `electron-builder --dir --linux` produces `dist/linux-unpacked`
+- [x] `executableName: infinity-canvas` (avoid `@infinity-canvasdesktop` binary name)
+- [x] README: features, LLM, packaging (`cd apps/desktop && pnpm dist:linux`)
+- [x] Demo canvas JSON present (21/34)
+- [x] `.gitignore` covers `dist/`, `.env*`
+- [ ] Playwright e2e (open fixture → map → codemap) — deferred
+- [ ] ARCHITECTURE / USER_GUIDE / icons — deferred
+- [ ] Signed releases / CI publish artifacts — deferred
 
-## Проект Infinity Canvas — MVP complete ✅
+## Проект Infinity Canvas — research MVP ✅
 
-**Все 10 фаз закрыты.** Дальше — опциональный polish (9.5) или production hardening.
-*(or finish 9.5 optional first)*
+**Core phases 1–10 closed for research prototype.**  
+Still open: **9.5** optional UX, real **e2e**, deeper docs, signed installers.

@@ -9,6 +9,10 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:live-llm": "tsx packages/semantic/scripts/live-haiku-smoke.ts",
+    "dist:linux": "pnpm --filter @infinity-canvas/desktop dist:linux",
+    "dist:mac": "pnpm --filter @infinity-canvas/desktop dist:mac",
+    "dist:win": "pnpm --filter @infinity-canvas/desktop dist:win",
+    "pack": "pnpm --filter @infinity-canvas/desktop pack",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean"
   },
