@@ -30,13 +30,35 @@ interface ElectronAPI {
     provider?: string;
     error?: string;
   }>;
-  getDepGraph: (workspacePath: string, fileAnchors?: string[]) => Promise<{
+  getDepGraph: (workspacePath: string, fileAnchors?: string[], depth?: number) => Promise<{
     center?: string;
+    centers?: string[];
     nodeCount?: number;
     edgeCount?: number;
     edges?: { from: string; to: string; kind: string; line?: number }[];
     nodes?: { id: string; name?: string; kind?: string }[];
     error?: string;
+    needsWorkspace?: boolean;
+  }>;
+  getNodeCodemap: (payload: {
+    nodeId: string;
+    text?: string;
+    summary?: string;
+    fileAnchors?: string[];
+    force?: boolean;
+  }) => Promise<{
+    codemap?: {
+      title: string;
+      traces: {
+        id: string;
+        title: string;
+        description: string;
+        locations: { id: string; path: string; lineNumber: number; title?: string; description?: string }[];
+      }[];
+    };
+    fromCache?: boolean;
+    error?: string;
+    needsWorkspace?: boolean;
   }>;
 }
 

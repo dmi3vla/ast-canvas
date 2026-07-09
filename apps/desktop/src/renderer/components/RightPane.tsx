@@ -7,13 +7,17 @@ interface RightPaneProps {
   nodeId: string | null;
   node: ICNode | null;
   source?: { path: string; line: number };
+  breadcrumb?: string[];
   onSetMode: (mode: RightMode) => void;
   onOpenSource: (path: string, line: number) => void;
   onBack?: () => void;
   canGoBack?: boolean;
 }
 
-export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource, onBack, canGoBack }: RightPaneProps) {
+export function RightPane({
+  mode, nodeId, node, source, breadcrumb,
+  onSetMode, onOpenSource, onBack, canGoBack,
+}: RightPaneProps) {
   if (mode === 'empty' || !nodeId) {
     return (
       <div className="right-pane">
@@ -21,7 +25,7 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource,
           <div className="right-pane__empty-icon">🗺️</div>
           <div className="right-pane__empty-text">Select a node on the canvas</div>
           <div className="right-pane__empty-hint">
-            Click any node in the left panel to see its content here. Use <strong>Esc</strong> to clear selection.
+            Click any node in the left panel to see its content here. Use <strong>Esc</strong> to go back or clear selection.
           </div>
         </div>
       </div>
@@ -30,7 +34,6 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource,
 
   const title = node?.text?.split('\n')[0]?.replace(/^#+\s*/, '') || nodeId;
   const summary = node?.semantic?.summary || '';
-  // Strip markdown headers from raw text for body display
   const cleanBody = node?.text
     ? node.text.split('\n').filter(l => !l.match(/^#+\s/)).join('\n').trim()
     : '';
@@ -42,23 +45,34 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource,
     else if (node?.graph?.path) onOpenSource(node.graph.path, 1);
   };
 
+  const crumbs = breadcrumb && breadcrumb.length > 0
+    ? breadcrumb
+    : [title, mode !== 'content' ? mode : ''].filter(Boolean);
+
   return (
     <div className="right-pane">
       <div className="right-pane__header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {canGoBack && onBack && (
-            <button
-              onClick={onBack}
-              title="Back (Esc)"
-              style={{
-                background: 'none', border: 'none', color: 'var(--text-secondary)',
-                fontSize: 16, cursor: 'pointer', padding: '0 4px',
-              }}
-            >←</button>
-          )}
-          <div className="right-pane__title" title={nodeId}>
-            {mode === 'source' && source ? source.path.split('/').pop() : title}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {canGoBack && onBack && (
+              <button
+                onClick={onBack}
+                title="Back (Esc)"
+                style={{
+                  background: 'none', border: 'none', color: 'var(--text-secondary)',
+                  fontSize: 16, cursor: 'pointer', padding: '0 4px', flexShrink: 0,
+                }}
+              >←</button>
+            )}
+            <div className="right-pane__title" title={nodeId} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {mode === 'source' && source ? source.path.split('/').pop() : title}
+            </div>
           </div>
+          {crumbs.length > 1 && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: canGoBack ? 28 : 0 }}>
+              {crumbs.join(' › ')}
+            </div>
+          )}
         </div>
         <div className="right-pane__actions">
           <button
@@ -89,15 +103,9 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource,
           </p>
           {cleanBody && summary && (
             <pre style={{
-              marginTop: 12,
-              padding: 10,
-              background: 'var(--cards-bg, #1a1a1a)',
-              borderRadius: 6,
-              fontSize: 12,
-              color: 'var(--text-secondary, #aaa)',
-              whiteSpace: 'pre-wrap',
-              maxHeight: 200,
-              overflow: 'auto',
+              marginTop: 12, padding: 10, background: 'var(--cards-bg, #1a1a1a)',
+              borderRadius: 6, fontSize: 12, color: 'var(--text-secondary, #aaa)',
+              whiteSpace: 'pre-wrap', maxHeight: 200, overflow: 'auto',
             }}>
               {cleanBody}
             </pre>
@@ -121,12 +129,7 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource,
               <div className="codemap-section__title">📎 File anchors</div>
               <ul className="codemap-list">
                 {anchors.map((a) => (
-                  <li
-                    key={a}
-                    className="codemap-list__item"
-                    onClick={() => onOpenSource(a, 1)}
-                    style={{ cursor: 'pointer' }}
-                  >
+                  <li key={a} className="codemap-list__item" onClick={() => onOpenSource(a, 1)} style={{ cursor: 'pointer' }}>
                     <span className="codemap-list__icon">📄</span>
                     <span style={{ color: 'var(--accent)' }}>{a}</span>
                   </li>
@@ -140,32 +143,20 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource,
       {mode === 'codemap' && (
         <div className="right-pane__content">
           <DepGraphSection anchors={anchors} nodeId={nodeId} onOpenSource={onOpenSource} />
-          {node?.semantic?.traceIds && node.semantic.traceIds.length > 0 && (
-            <div className="codemap-section">
-              <div className="codemap-section__title">🔗 Trace ids</div>
-              <ul className="codemap-list">
-                {node.semantic.traceIds.map((t) => (
-                  <li key={t} className="codemap-list__item">{t}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <StructuralTraces
+            nodeId={nodeId}
+            text={node?.text}
+            summary={summary}
+            anchors={anchors}
+            onOpenSource={onOpenSource}
+          />
         </div>
       )}
 
       {mode === 'source' && (
-        <div className="right-pane__content">
+        <div className="right-pane__content" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           {source ? (
-            <>
-              <div className="source-view__header">
-                📄 {source.path}{source.line ? ` (line ${source.line})` : ''}
-              </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 12 }}>
-                Open this path in the workspace via file read (Phase 7: monaco).
-                Path is relative or absolute under the opened folder.
-              </p>
-              <SourcePreview path={source.path} line={source.line} />
-            </>
+            <SourcePreview path={source.path} line={source.line} />
           ) : (
             <p style={{ color: 'var(--text-muted)' }}>No source path for this node.</p>
           )}
@@ -175,25 +166,34 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource,
   );
 }
 
-function DepGraphSection({ anchors, nodeId, onOpenSource }: { anchors: string[]; nodeId: string; onOpenSource: (path: string, line: number) => void }) {
+// ── DepGraph section ────────────────────────────────────
+
+function DepGraphSection({
+  anchors, onOpenSource,
+}: {
+  anchors: string[];
+  nodeId: string;
+  onOpenSource: (path: string, line: number) => void;
+}) {
   const [depData, setDepData] = React.useState<{
     edges?: { from: string; to: string; kind: string; line?: number }[];
     nodes?: { id: string; name?: string; kind?: string }[];
     center?: string;
+    centers?: string[];
     error?: string;
+    needsWorkspace?: boolean;
   } | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [depth, setDepth] = React.useState(1);
 
   const fetchData = React.useCallback((d: number) => {
-    if (anchors.length === 0 || !window.electronAPI?.getDepGraph) return;
+    if (anchors.length === 0 || !window.electronAPI?.getDepGraph) return () => {};
     let cancelled = false;
     setLoading(true);
 
     (async () => {
       try {
-        // Note: getEgo signature changed — accepts string[] for multi-anchor
-        const data = await window.electronAPI!.getDepGraph('', anchors);
+        const data = await window.electronAPI!.getDepGraph('', anchors, d);
         if (!cancelled) setDepData(data);
       } catch {
         if (!cancelled) setDepData({ error: 'Failed to load dep graph' });
@@ -204,7 +204,7 @@ function DepGraphSection({ anchors, nodeId, onOpenSource }: { anchors: string[];
     return () => { cancelled = true; };
   }, [anchors.join(',')]);
 
-  React.useEffect(() => { return fetchData(depth); }, [fetchData, depth]);
+  React.useEffect(() => fetchData(depth), [fetchData, depth]);
 
   const isExternal = (id: string) => id.startsWith('external:');
   const nodeName = (id: string) => isExternal(id) ? id.replace('external:', '') : id;
@@ -213,52 +213,61 @@ function DepGraphSection({ anchors, nodeId, onOpenSource }: { anchors: string[];
     return <div className="codemap-section" style={{ color: 'var(--text-muted)', padding: '12px 0' }}>⏳ Loading dependency graph...</div>;
   }
 
-  if (depData?.error || (!depData?.edges && !depData?.nodes)) {
+  if (depData?.needsWorkspace || depData?.error || (!depData?.edges && !depData?.nodes)) {
     return (
       <div className="codemap-section">
         <div className="codemap-section__title">📍 File anchors</div>
         {anchors.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No file anchors. Open a workspace to compute dependencies.</p>
         ) : (
-          <ul className="codemap-list">
-            {anchors.map((a, i) => (
-              <li key={a} className="codemap-list__item" onClick={() => onOpenSource(a, 1)} style={{ cursor: 'pointer' }}>
-                <span className="codemap-list__icon">📄</span>
-                <span style={{ color: 'var(--accent)' }}>{a}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            {(depData?.needsWorkspace || depData?.error) && (
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
+                {depData?.needsWorkspace
+                  ? 'Open Folder to compute real dependency graph.'
+                  : (depData?.error || 'Deps unavailable — showing anchors.')}
+              </p>
+            )}
+            <ul className="codemap-list">
+              {anchors.map((a) => (
+                <li key={a} className="codemap-list__item" onClick={() => onOpenSource(a, 1)} style={{ cursor: 'pointer' }}>
+                  <span className="codemap-list__icon">📄</span>
+                  <span style={{ color: 'var(--accent)' }}>{a}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     );
   }
 
-  const depsOut = (depData.edges || []).filter(e => e.from === depData.center); // Depends on
-  const depsIn = (depData.edges || []).filter(e => e.to === depData.center);   // Used by
+  const centers = new Set(depData.centers?.length ? depData.centers : (depData.center ? [depData.center] : []));
+  const depsOut = (depData.edges || []).filter(e => centers.has(e.from));
+  const depsIn = (depData.edges || []).filter(e => centers.has(e.to));
 
-  const renderEdgeList = (edges: { from: string; to: string; kind: string; line?: number }[], side: 'out' | 'in') => {
+  const renderEdgeList = (
+    edges: { from: string; to: string; kind: string; line?: number }[],
+    side: 'out' | 'in',
+  ) => {
     if (edges.length === 0) {
       return <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>None</p>;
     }
-    const target = (e: typeof edges[0]) => side === 'out' ? e.to : e.from;
+    const target = (e: typeof edges[0]) => (side === 'out' ? e.to : e.from);
     return (
       <ul className="codemap-list">
         {edges.map((e, i) => {
           const tgt = target(e);
           const ext = isExternal(tgt);
-          const label = nodeName(tgt);
           return (
             <li
               key={i}
               className="codemap-list__item"
               onClick={() => { if (!ext) onOpenSource(tgt, e.line || 1); }}
-              style={{
-                cursor: ext ? 'default' : 'pointer',
-                opacity: ext ? 0.6 : 1,
-              }}
+              style={{ cursor: ext ? 'default' : 'pointer', opacity: ext ? 0.6 : 1 }}
             >
               <span className="codemap-list__icon">{ext ? '📦' : '📄'}</span>
-              <span style={{ color: ext ? 'var(--text-muted)' : 'var(--accent)' }}>{label}</span>
+              <span style={{ color: ext ? 'var(--text-muted)' : 'var(--accent)' }}>{nodeName(tgt)}</span>
               <span style={{ color: 'var(--text-muted)', fontSize: 10, marginLeft: 'auto' }}>
                 {e.kind}{e.line ? ` :${e.line}` : ''}
               </span>
@@ -301,6 +310,100 @@ function DepGraphSection({ anchors, nodeId, onOpenSource }: { anchors: string[];
     </>
   );
 }
+
+// ── Structural traces (CodemapBuilder) ──────────────────
+
+function StructuralTraces({
+  nodeId, text, summary, anchors, onOpenSource,
+}: {
+  nodeId: string;
+  text?: string;
+  summary?: string;
+  anchors: string[];
+  onOpenSource: (path: string, line: number) => void;
+}) {
+  const [traces, setTraces] = React.useState<{
+    id: string;
+    title: string;
+    description: string;
+    locations: { id: string; path: string; lineNumber: number; title?: string }[];
+  }[] | null>(null);
+  const [fromCache, setFromCache] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!window.electronAPI?.getNodeCodemap) return;
+    let cancelled = false;
+    (async () => {
+      const res = await window.electronAPI!.getNodeCodemap({
+        nodeId,
+        text,
+        summary,
+        fileAnchors: anchors,
+      });
+      if (cancelled) return;
+      if (res.error) {
+        setError(res.needsWorkspace ? 'Open Folder to build structural codemap.' : res.error);
+        setTraces(null);
+      } else if (res.codemap) {
+        setTraces(res.codemap.traces);
+        setFromCache(!!res.fromCache);
+        setError(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [nodeId, anchors.join(','), text, summary]);
+
+  if (error) {
+    return (
+      <div className="codemap-section" style={{ marginTop: 16 }}>
+        <div className="codemap-section__title">🧭 Structural traces</div>
+        <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{error}</p>
+      </div>
+    );
+  }
+  if (!traces) {
+    return (
+      <div className="codemap-section" style={{ marginTop: 16, color: 'var(--text-muted)', fontSize: 12 }}>
+        ⏳ Building structural codemap…
+      </div>
+    );
+  }
+
+  return (
+    <div className="codemap-section" style={{ marginTop: 16 }}>
+      <div className="codemap-section__title">
+        🧭 Structural traces {fromCache ? '(cached)' : ''}
+      </div>
+      {traces.map(t => (
+        <div key={t.id} style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+            [{t.id}] {t.title}
+            <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>{t.description}</span>
+          </div>
+          <ul className="codemap-list">
+            {t.locations.map(loc => (
+              <li
+                key={loc.id}
+                className="codemap-list__item"
+                onClick={() => onOpenSource(loc.path, loc.lineNumber || 1)}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="codemap-list__icon">[{loc.id}]</span>
+                <span style={{ color: 'var(--accent)' }}>{loc.path}{loc.lineNumber ? `:${loc.lineNumber}` : ''}</span>
+                {loc.title && loc.title !== loc.path && (
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{loc.title}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Source preview ──────────────────────────────────────
 
 function SourcePreview({ path, line }: { path: string; line: number }) {
   const [text, setText] = React.useState<string | null>(null);

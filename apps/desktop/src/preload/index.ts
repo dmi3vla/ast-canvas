@@ -39,14 +39,38 @@ const api = {
     ipcRenderer.invoke('config:set', key, value),
 
   // DepGraph
-  getDepGraph: (workspacePath: string, fileAnchors?: string[]): Promise<{
+  getDepGraph: (workspacePath: string, fileAnchors?: string[], depth?: number): Promise<{
     center?: string;
+    centers?: string[];
     nodeCount?: number;
     edgeCount?: number;
     edges?: { from: string; to: string; kind: string; line?: number }[];
     nodes?: { id: string; name?: string; kind?: string }[];
     error?: string;
-  }> => ipcRenderer.invoke('workspace:depGraph', workspacePath, fileAnchors),
+    needsWorkspace?: boolean;
+  }> => ipcRenderer.invoke('workspace:depGraph', workspacePath, fileAnchors, depth),
+
+  getNodeCodemap: (payload: {
+    nodeId: string;
+    text?: string;
+    summary?: string;
+    fileAnchors?: string[];
+    force?: boolean;
+  }): Promise<{
+    codemap?: {
+      title: string;
+      traces: {
+        id: string;
+        title: string;
+        description: string;
+        locations: { id: string; path: string; lineNumber: number; title?: string; description?: string }[];
+      }[];
+    };
+    fromCache?: boolean;
+    error?: string;
+    needsWorkspace?: boolean;
+  }> => ipcRenderer.invoke('workspace:nodeCodemap', payload),
+
   buildSemanticMap: (workspacePath: string, options?: { force?: boolean; useMock?: boolean }): Promise<{
     json?: string;
     fileCount?: number;

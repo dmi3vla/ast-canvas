@@ -78,6 +78,7 @@ export function App() {
         selectedNode: null,
         rightMode: 'empty',
         source: undefined,
+        navStack: [],
       }));
     } catch (err) {
       console.error('Build map failed:', err);
@@ -129,12 +130,26 @@ export function App() {
     }));
   }, []);
 
+  const nodeTitle = (s: AppState) =>
+    s.selectedNode?.text?.split('\n')[0]?.replace(/^#+\s*/, '') || s.selectedNodeId || 'Node';
+
   const handleSetRightMode = useCallback((mode: RightMode) => {
-    setState(s => ({
-      ...s,
-      rightMode: mode,
-      navStack: s.navStack.length === 0 ? [] : [...s.navStack, { mode: s.rightMode, source: s.source, title: s.selectedNode?.text?.split('\n')[0]?.replace(/^#+\s*/, '') }],
-    }));
+    setState(s => {
+      if (mode === s.rightMode) return s;
+      return {
+        ...s,
+        rightMode: mode,
+        // Always push current so Content→Codemap can go Back
+        navStack: [
+          ...s.navStack,
+          {
+            mode: s.rightMode,
+            source: s.source,
+            title: nodeTitle(s),
+          },
+        ],
+      };
+    });
   }, []);
 
   const handleOpenSource = useCallback((path: string, line: number) => {
@@ -151,7 +166,14 @@ export function App() {
         ...s,
         rightMode: 'source',
         source: { path: abs, line },
-        navStack: [...s.navStack, { mode: s.rightMode, source: s.source, title: path.split('/').pop() }],
+        navStack: [
+          ...s.navStack,
+          {
+            mode: s.rightMode,
+            source: s.source,
+            title: s.rightMode === 'source' ? s.source?.path.split('/').pop() : nodeTitle(s),
+          },
+        ],
       };
     });
   }, [state.workspacePath]);
@@ -159,8 +181,15 @@ export function App() {
   const handleNavBack = useCallback(() => {
     setState(s => {
       if (s.navStack.length === 0) {
-        handleSelectNode(null);
-        return s;
+        // Clear selection when stack empty
+        return {
+          ...s,
+          selectedNodeId: null,
+          selectedNode: null,
+          rightMode: 'empty',
+          source: undefined,
+          navStack: [],
+        };
       }
       const prev = s.navStack[s.navStack.length - 1];
       return {
@@ -215,6 +244,8 @@ export function App() {
       selectedNodeId: null,
       selectedNode: null,
       rightMode: 'empty',
+      source: undefined,
+      navStack: [],
     }));
   }, []);
 
@@ -263,6 +294,13 @@ export function App() {
             nodeId={state.selectedNodeId}
             node={state.selectedNode}
             source={state.source}
+            breadcrumb={[
+              state.selectedNode?.text?.split('\n')[0]?.replace(/^#+\s*/, '') || state.selectedNodeId || 'Node',
+              ...(state.rightMode === 'codemap' || state.rightMode === 'source' ? ['Codemap'] : []),
+              ...(state.rightMode === 'source' && state.source
+                ? [`${state.source.path.split('/').pop()}:${state.source.line}`]
+                : []),
+            ].filter(Boolean) as string[]}
             onSetMode={handleSetRightMode}
             onOpenSource={handleOpenSource}
             onBack={handleNavBack}

@@ -3,7 +3,14 @@ import { join, resolve, normalize, relative } from 'path';
 import { is } from '@electron-toolkit/utils';
 import { readFile, writeFile, readdir, stat } from 'fs/promises';
 import { existsSync, mkdirSync, watch } from 'fs';
-import { indexWorkspace, buildDepGraph, depGraphService } from '@infinity-canvas/ast-graph';
+import {
+  indexWorkspace,
+  buildDepGraph,
+  depGraphService,
+  buildNodeCodemap,
+  saveNodeCodemap,
+  loadNodeCodemap,
+} from '@infinity-canvas/ast-graph';
 import { contextPacker, createProvider, MockLLMProvider, buildSemanticMap } from '@infinity-canvas/semantic';
 import { serializeDocument } from '@infinity-canvas/schema';
 import { SessionStore } from '@infinity-canvas/session';
@@ -294,34 +301,76 @@ ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: strin
 
 // ── DepGraph for RIGHT Codemap ─────────────────────────
 
-ipcMain.handle('workspace:depGraph', async (_event, _workspacePath: string, nodeFileAnchors?: string[]) => {
-  try {
-    if (!lastWorkspacePath) return { error: 'No workspace open', needsWorkspace: true };
+ipcMain.handle(
+  'workspace:depGraph',
+  async (_event, _workspacePath: string, nodeFileAnchors?: string[], depth?: number) => {
+    try {
+      if (!lastWorkspacePath) return { error: 'No workspace open', needsWorkspace: true };
 
-    // Use cached service (not full rebuild every request)
-    const centerPaths = nodeFileAnchors && nodeFileAnchors.length > 0
-      ? nodeFileAnchors
-      : [];
-    const ego = await depGraphService.getEgo(lastWorkspacePath, centerPaths, 1);
+      const d = typeof depth === 'number' && depth >= 1 ? Math.min(depth, 3) : 1;
+      const centerPaths = nodeFileAnchors && nodeFileAnchors.length > 0 ? nodeFileAnchors : [];
+      const ego = await depGraphService.getEgo(lastWorkspacePath, centerPaths, d);
 
-    if (ego) {
+      if (ego) {
+        const g = await depGraphService.getGraph(lastWorkspacePath);
+        return {
+          center: ego.center,
+          centers: ego.centers,
+          nodeCount: ego.nodes.size,
+          edgeCount: ego.edges.length,
+          edges: ego.edges.map(e => ({ from: e.from, to: e.to, kind: e.kind, line: e.loc?.line })),
+          nodes: [...ego.nodes].map(id => ({ id, name: g.nodes[id]?.name, kind: g.nodes[id]?.kind })),
+        };
+      }
+
       const g = await depGraphService.getGraph(lastWorkspacePath);
-      return {
-        center: ego.center,
-        nodeCount: ego.nodes.size,
-        edgeCount: ego.edges.length,
-        edges: ego.edges.map(e => ({ from: e.from, to: e.to, kind: e.kind, line: e.loc?.line })),
-        nodes: [...ego.nodes].map(id => ({ id, name: g.nodes[id]?.name, kind: g.nodes[id]?.kind })),
-      };
+      return { nodeCount: Object.keys(g.nodes).length, edgeCount: g.edges.length };
+    } catch (err) {
+      return { error: String(err) };
     }
+  },
+);
 
-    // Fallback: summary only
-    const g = await depGraphService.getGraph(lastWorkspacePath);
-    return { nodeCount: Object.keys(g.nodes).length, edgeCount: g.edges.length };
-  } catch (err) {
-    return { error: String(err) };
-  }
-});
+// ── Structural codemap per semantic node ────────────────
+
+ipcMain.handle(
+  'workspace:nodeCodemap',
+  async (
+    _event,
+    payload: {
+      nodeId: string;
+      text?: string;
+      summary?: string;
+      fileAnchors?: string[];
+      force?: boolean;
+    },
+  ) => {
+    try {
+      if (!lastWorkspacePath) return { error: 'No workspace open', needsWorkspace: true };
+
+      const { nodeId, text, summary, fileAnchors = [], force } = payload;
+      if (!force) {
+        const cached = await loadNodeCodemap(lastWorkspacePath, nodeId);
+        if (cached) return { codemap: cached, fromCache: true };
+      }
+
+      const g = await depGraphService.getGraph(lastWorkspacePath);
+      const codemap = buildNodeCodemap(
+        {
+          id: nodeId,
+          text,
+          semantic: { summary, fileAnchors, kind: 'area' },
+        },
+        g,
+        lastWorkspacePath,
+      );
+      await saveNodeCodemap(lastWorkspacePath, nodeId, codemap);
+      return { codemap, fromCache: false };
+    } catch (err) {
+      return { error: String(err) };
+    }
+  },
+);
 
 // ── App Lifecycle ───────────────────────────────────────
 

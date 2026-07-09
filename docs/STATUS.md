@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-10  
-> Текущая фаза: **7 — RIGHT Codemap + Source** 🔄
+> Текущая фаза: **7 — RIGHT Codemap + Source** ✅
 
 ---
 
@@ -106,7 +106,7 @@
 
 ---
 
-## Следующая фаза: 6 — AST / DepGraph (backend deepen) 🔄
+## Фаза 6 — AST / DepGraph (backend deepen) ✅
 
 | Этап | Артефакт | Статус |
 |------|----------|:------:|
@@ -141,30 +141,32 @@
 
 ---
 
-## Следующая фаза: 7 — RIGHT Codemap + Source 🔄
+## Фаза 7 — RIGHT Codemap + Source ✅
 
 | Этап | Артефакт | Статус |
 |------|----------|:------:|
 | 7.0 | Polish: empty states, labels, external node styling | ✅ |
-| 7.1 | Codemap UX: depth toggle, Depends on/Used by, kind badges | ✅ |
-| 7.2 | `CodemapBuilder` → `.infinity-canvas/codemaps/{nodeId}.codemap` | ✅ |
-| 7.3 | Navigation stack + breadcrumb + back button (← / Esc) | ✅ |
-| 7.4 | Source viewer: scroll-to-line, Copy path, sticky header | ✅ |
-| 7.5 | Monaco editor — deferred (MVP = solid pre viewer) | ⏳ |
+| 7.1 | Codemap UX: depth toggle **wired to IPC**, Depends on/Used by, external muted | ✅ |
+| 7.2 | `CodemapBuilder` + IPC `workspace:nodeCodemap` + RIGHT Traces UI + tests | ✅ |
+| 7.3 | Nav stack **always push** + breadcrumb `Node › Codemap › file:line` + ← / Esc | ✅ |
+| 7.4 | Source: scroll-to-line, Copy path, sticky header (Monaco deferred) | ✅ |
+| 7.5 | Monaco editor — deferred | ⏳ |
 
 ### DoD Фазы 7:
-- [x] `pnpm typecheck` — 8/8 зелёные
-- [x] `pnpm test` — 106 тестов
-- [x] Codemap: depth toggle 1/2, Depends on / Used by, external nodes muted
-- [x] Structural codemap: `buildNodeCodemap` + save/load `.codemap` files
-- [x] Navigation stack: ← back button + breadcrumb + Esc pop
-- [x] Source: scroll-to-line, Copy path, sticky header, error states
-- [x] Content → Codemap → Source drill path с возвратом без потери выбора узла
+- [x] `pnpm typecheck` — 8/8
+- [x] `pnpm test` — **110** tests (schema 32, canvas-core 16, ast-graph 38, semantic 17, session 7)
+- [x] Depth 1/2 passed to `getDepGraph(..., depth)` → `getEgo`
+- [x] Structural codemap built + saved under `.infinity-canvas/codemaps/`
+- [x] Content → Codemap → Source → Back works (navStack always pushes)
+- [x] Breadcrumb under title
+- [x] Source scroll + copy path
 
-### Screenshot notes (`docs/1.png` `2.png` `3.png`):
-LEFT = demo seed (Architecture / Canvas Core / IPC / AppShell), not LLM map —
-caused by P1. After fix: Open Folder or Regenerate should replace demo.
-RIGHT codemap/source were placeholder mocks — content path fixed; deps still Phase 5.
+### Residual / next:
+- [ ] Monaco RO (optional)
+- [ ] Click dep → select LEFT node by anchor (7.5 optional)
+- [ ] Phase 8 — LLM enrich codemap
+
+## Следующая фаза: 8 — LLM enrich codemap (optional)
 
 ```
 infinity-canvas/

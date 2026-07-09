@@ -6,11 +6,33 @@ import { existsSync } from 'fs';
 const CACHE_DIR = '.infinity-canvas';
 const CODEMAPS_DIR = 'codemaps';
 
-/** Inline ICNode subset — avoids circular dep on canvas-core */
-interface NodeInfo {
+/** Inline node subset — avoids circular dep on canvas-core */
+export interface NodeInfo {
   id: string;
   text?: string;
   semantic?: { kind?: string; summary?: string; traceIds?: string[]; fileAnchors?: string[] };
+}
+
+function locId(traceId: string, index: number): string {
+  // 1a, 1b, … 1z, 1aa (simple: a–z only, cap 26)
+  const letter = String.fromCharCode(97 + Math.min(index, 25));
+  return `${traceId}${letter}`;
+}
+
+function resolveCenterIds(depGraph: DepGraph, anchors: string[]): string[] {
+  const matched: string[] = [];
+  for (const a of anchors) {
+    let candidate = a;
+    if (!depGraph.nodes[candidate]) {
+      candidate = Object.keys(depGraph.nodes).find(id =>
+        id.endsWith(a) || a.endsWith(id),
+      ) || '';
+    }
+    if (candidate && depGraph.nodes[candidate] && !matched.includes(candidate)) {
+      matched.push(candidate);
+    }
+  }
+  return matched;
 }
 
 /** Build a structural codemap from a semantic node + dep graph */
@@ -21,19 +43,14 @@ export function buildNodeCodemap(
 ): Codemap {
   const anchors = node.semantic?.fileAnchors || [];
   const traces: Trace[] = [];
-  let locCounter = 0;
+  const centers = resolveCenterIds(depGraph, anchors);
 
-  // Find center in graph
-  const centerId = anchors.length > 0
-    ? Object.keys(depGraph.nodes).find(id => anchors.some((a: string) => id.endsWith(a) || a.endsWith(id))) || ''
-    : '';
-
-  // Trace 1: Depends on (outgoing)
-  if (centerId) {
-    const depsOut = depGraph.edges.filter(e => e.from === centerId);
+  // Trace 1: Depends on (outgoing from any center)
+  if (centers.length > 0) {
+    const depsOut = depGraph.edges.filter(e => centers.includes(e.from));
     if (depsOut.length > 0) {
-      const locs: Location[] = depsOut.map(e => ({
-        id: `1${String.fromCharCode(97 + locCounter++)}`,
+      const locs: Location[] = depsOut.slice(0, 20).map((e, i) => ({
+        id: locId('1', i),
         path: e.to.startsWith('external:') ? e.to.replace('external:', '') : e.to,
         lineNumber: e.loc?.line || 1,
         title: e.to,
@@ -43,15 +60,15 @@ export function buildNodeCodemap(
         id: '1',
         title: 'Depends on',
         description: `${depsOut.length} outgoing dependencies`,
-        locations: locs.slice(0, 20),
+        locations: locs,
       });
     }
 
     // Trace 2: Used by (incoming)
-    const depsIn = depGraph.edges.filter(e => e.to === centerId);
+    const depsIn = depGraph.edges.filter(e => centers.includes(e.to));
     if (depsIn.length > 0) {
-      const locs: Location[] = depsIn.map(e => ({
-        id: `2${String.fromCharCode(97 + locCounter++)}`,
+      const locs: Location[] = depsIn.slice(0, 20).map((e, i) => ({
+        id: locId('2', i),
         path: e.from,
         lineNumber: e.loc?.line || 1,
         title: e.from,
@@ -61,7 +78,7 @@ export function buildNodeCodemap(
         id: '2',
         title: 'Used by',
         description: `${depsIn.length} incoming dependents`,
-        locations: locs.slice(0, 20),
+        locations: locs,
       });
     }
   }
@@ -72,16 +89,35 @@ export function buildNodeCodemap(
       id: '3',
       title: 'File anchors',
       description: `${anchors.length} anchored files`,
-      locations: anchors.map((a: string, i: number) => ({
-        id: `3${String.fromCharCode(97 + i)}`,
+      locations: anchors.map((a, i) => ({
+        id: locId('3', i),
         path: a,
         lineNumber: 1,
         title: a,
+        description: 'Semantic file anchor',
       })),
     });
   }
 
   const now = new Date().toISOString();
+  const title = node.text?.split('\n')[0]?.replace(/^#+\s*/, '') || node.id;
+
+  // parseCodemap requires locations.min(1) — never empty locations
+  if (traces.length === 0) {
+    traces.push({
+      id: '1',
+      title: 'No structural data',
+      description: 'No dependencies or anchors for this node',
+      locations: [{
+        id: '1a',
+        path: node.id,
+        lineNumber: 1,
+        title: node.id,
+        description: 'Placeholder — open workspace with file anchors',
+      }],
+    });
+  }
+
   return {
     schemaVersion: 1,
     id: `node-${node.id}___${now}`,
@@ -93,13 +129,8 @@ export function buildNodeCodemap(
       mode: 'AUTO',
       originalPrompt: `depgraph for ${node.id}`,
     },
-    title: node.text?.split('\n')[0]?.replace(/^#+\s*/, '') || node.id,
-    traces: traces.length > 0 ? traces : [{
-      id: '1',
-      title: 'No structural data',
-      description: 'No dependencies found for this node',
-      locations: [],
-    }],
+    title,
+    traces,
   };
 }
 

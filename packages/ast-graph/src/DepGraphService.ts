@@ -79,14 +79,14 @@ export class DepGraphService {
   }
 
   /**
-   * Ego network for one or more anchors (depth 1 = union of each center's ego).
-   * `center` is the first matched anchor id (primary).
+   * Ego network for one or more anchors (union of each center's ego).
+   * `center` = primary (first matched); `centers` = all matched.
    */
   async getEgo(
     workspaceRoot: string,
     centerPaths: string[],
     depth = 1,
-  ): Promise<{ nodes: Set<string>; edges: DepEdge[]; center: string } | null> {
+  ): Promise<{ nodes: Set<string>; edges: DepEdge[]; center: string; centers: string[] } | null> {
     const g = await this.getGraph(workspaceRoot);
     const { egoNetwork } = await import('@infinity-canvas/schema');
 
@@ -120,6 +120,7 @@ export class DepGraphService {
       nodes,
       edges: [...edgeMap.values()],
       center: matched[0],
+      centers: matched,
     };
   }
 

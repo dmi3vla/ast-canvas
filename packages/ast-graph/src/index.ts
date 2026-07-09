@@ -14,3 +14,4 @@ export type { BuildOptions } from './depGraphBuilder';
 export { DepGraphService, depGraphService } from './DepGraphService';
 
 export { buildNodeCodemap, saveNodeCodemap, loadNodeCodemap } from './CodemapBuilder';
+export type { NodeInfo } from './CodemapBuilder';
