@@ -6,4 +6,5 @@ export { CanvasRenderer } from './CanvasRenderer';
 export { InputHandler } from './InputHandler';
 export { CanvasView } from './CanvasView';
 export type { CanvasViewHandle } from './CanvasView';
+export { DEMO_CANVAS_JSON } from './demoCanvas';
 export type * from './types';

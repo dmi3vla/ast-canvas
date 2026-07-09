@@ -1,7 +1,7 @@
 # Infinity Canvas — Project Status
 
 > Последнее обновление: 2026-07-09  
-> Текущая фаза: **4 — LLM Semantic Map** ✅ (Live Haiku OK: 4 traces → canvas)
+> Текущая фаза: **5 — AST Graph** 🔄
 
 ---
 
@@ -85,13 +85,34 @@
 
 ---
 
-## Следующая фаза: 5 — AST Graph (import resolution)
+## Следующая фаза: 5 — AST Graph (import resolution) 🔄
+
+| Этап | Артефакт | Статус |
+|------|----------|:------:|
+| 5.1 | `packages/ast-graph/src/import-resolver.ts` — regex import extractor | ✅ |
+| 5.2 | `packages/ast-graph/src/depGraphBuilder.ts` — DepGraph from workspace files | ✅ |
+| 5.3 | `RightPane` Codemap → `DepGraphSection` with IPC `workspace:depGraph` | ✅ |
+| 5.4 | Token references (lightweight, file-level) — deferred to 6.x | ⏳ |
+
+### DoD Фазы 5:
+- [x] `pnpm typecheck` — 8/8 зелёные
+- [x] `pnpm test` — 90 тестов (schema 32, canvas-core 16, ast-graph 18, semantic 17, session 7)
+- [x] Import resolver: ES6 named/default/namespace/side-effect + CJS + dynamic + type-only
+- [x] Real file test: `fixtures/mini-project/src/index.js` → extracts imports correctly
+- [x] DepGraph builder: resolves relative imports, marks external modules
+- [x] RIGHT Codemap: shows deps-in/derives-out via `workspace:depGraph` IPC
+- [x] Fallback: static anchors when no workspace open
+- [x] `electron-vite` bundling: workspace packages bundled inline (not externalized)
+
+---
+
+## Следующая фаза: 6 — AST / DepGraph (backend deepen)
 
 Ближайшие этапы:
-- 5.1 — Import resolver (regex patterns for JS/TS)
-- 5.2 — DepGraph builder from file-level imports
-- 5.3 — Wire dep-graph to RIGHT codemap panel
-- 5.4 — Token references (lightweight, file-level)
+- 6.1 — TS/JS adapter (acorn/tsc for deeper AST)
+- 6.2 — DepGraphService with watch + cache
+- 6.3 — Symbol-level extraction (optional spike)
+- 6.4 — Wire to RIGHT with ego + navigation
 
 ### Known residual (Phase 4 / UX from docs/1-3.png review):
 - [x] **P1** `CanvasView` only applied `initialData` on mount → after `buildMap` UI stayed on **demo seed** (screenshots). Fixed: react to `initialData` + `loadData` + `fitView`

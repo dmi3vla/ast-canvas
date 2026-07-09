@@ -1,281 +1,188 @@
 
+## User
 
-давай задачи для агента под тест-модель: 'kr/claude-haiku-4.5', API Base:   'http://localhost:20128/v1' apikey: 'sk-99e1d2510daa5159-d66de2-710a006b'
+ревью по проекту и демо /docs/demo1.png /docs/demo2.png /docs/demo3.png /docs/demo4.png
 
 ## Tools
 
-- Execute: export PATH="/home/resu/.nvm/versions/node/v22.23.1/bin:$PATH"
-ls -la /home/resu/Documents/dev/ast-canvas/packages/semantic/src/ 2>/dev/null
-head -50 /home/resu/Documents/dev/ast-canvas/packages/semantic/src/llmProviders.ts 2>/dev/null
-grep -n "createProvider\|baseUrl\|OPENROUTER\|buildSemanticMap\|config" /home/resu/Documents/dev/ast-canvas/packages/semantic/src/*.ts /home/resu/Documents/dev/ast-canvas/apps/desktop/src/main/*.ts 2>/dev/null | head -40
- (Inspect semantic LLM config for task accuracy)
+- Execute: ls -la /home/resu/Documents/dev/ast-canvas/docs/demo*.png /home/resu/Documents/dev/ast-canvas/docs/demo*.canvas 2>/dev/null; ls -la /home/resu/Documents/dev/ast-canvas/docs/ | head -30
+ (List demo screenshots and related files)
+- Read: /home/resu/Documents/dev/ast-canvas/docs/demo1.png
+- Read: /home/resu/Documents/dev/ast-canvas/docs/demo2.png
+- Read: /home/resu/Documents/dev/ast-canvas/docs/demo3.png
+- Read: /home/resu/Documents/dev/ast-canvas/docs/demo4.png
 
 ## Assistant
 
-# Задачи агента: тест-модель Haiku (localhost)
+# Ревью: проект + демо `docs/demo1–4.png`
 
-## Test target (не коммитить ключ в git)
+## Вердикт
 
-| Param | Value |
-|-------|--------|
-| model | `kr/claude-haiku-4.5` |
-| baseUrl | `http://localhost:20128/v1` |
-| apiKey | `sk-99e1d2510daa5159-d66de2-710a006b` |
+| | |
+|--|--|
+| **Demo map на LEFT** | ✅ `demo_project_map.canvas` живой: области 1–7, pipeline, рёбра |
+| **Split UX** | ✅ LEFT always · RIGHT empty → content → codemap → source |
+| **Content / Codemap** | ✅ title, summary, kind/type/id, fileAnchors, trace ids |
+| **Source** | ❌ ENOENT — workspace не открыт / path не резолвится |
+| **Toolbar product** | ⚠️ только Open Folder — нет path, count, Regenerate |
+| **Phase 4 product loop** | ⚠️ demo ручной load, не «Open Folder → LLM/cache» |
 
-Секреты: только **env** / **userData config** / `.env.local` в `.gitignore`.  
-В репо — пример `.env.example` **без** реального key.
-
-**Сейчас:** `workspace:buildSemanticMap` жёстко зовёт **Mock** — для live-теста нужно снять этот hardcode.
-
----
-
-## T0 — Smoke endpoint (5 мин, до кода)
-
-```
-Проверь что gateway жив (из shell, ключ в env):
-
-export INFINITY_LLM_API_KEY='sk-99e1d2510daa5159-d66de2-710a006b'
-export INFINITY_LLM_BASE_URL='http://localhost:20128/v1'
-export INFINITY_LLM_MODEL='kr/claude-haiku-4.5'
-
-curl -sS "$INFINITY_LLM_BASE_URL/chat/completions" \
-  -H "Authorization: Bearer $INFINITY_LLM_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "kr/claude-haiku-4.5",
-    "messages": [{"role":"user","content":"Reply with exactly: pong"}],
-    "max_tokens": 32
-  }' | head -c 800
-
-DoD: HTTP 200, content содержит pong (или аналог).
-Если fail — не идти в T2; починить gateway/порт 20128.
-```
+**Итог:** визуальный прототип **карты проекта + RIGHT drill** — success.  
+End-to-end «открыли папку → semantic map → source из anchors» — **ещё нет** (видно по demo4 + toolbar).
 
 ---
 
-## T1 — LLM config + OpenAI-compatible provider
+## Что на скринах
 
-```
-Этап T1 ONLY. packages/semantic + desktop config.
+| # | Сценарий | LEFT | RIGHT | Оценка |
+|---|----------|------|-------|--------|
+| **demo1** | empty | полный demo graph (fitView) | «Select a node…» | ✅ empty state |
+| **demo2** | Content · node **3 semantic** | 2a–2c, 5, 6, pipeline | summary + kind/type/id + 5 anchors | ✅ |
+| **demo3** | Codemap · node **3** | то же | anchors [a–e] + TRACE IDS `3` | ✅ |
+| **demo4** | Source · anchor | то же | `ENOENT` relative path | ❌ |
 
-1) Типы:
-   LlmConfig {
-     provider: 'mock' | 'openai-compatible'
-     baseUrl?: string
-     apiKey?: string
-     model?: string
-     timeoutMs?: number
-   }
-
-2) Env (приоритет):
-   INFINITY_LLM_PROVIDER=openai-compatible|mock
-   INFINITY_LLM_BASE_URL=http://localhost:20128/v1
-   INFINITY_LLM_API_KEY=...
-   INFINITY_LLM_MODEL=kr/claude-haiku-4.5
-   (legacy: OPENROUTER_API_KEY как fallback apiKey)
-
-3) OpenRouterProvider переименовать/обобщить → OpenAICompatibleProvider
-   (или оставить alias): baseUrl + model + apiKey из options/env.
-   POST {baseUrl}/chat/completions  (у вас уже так)
-   model: options.model || env || default
-   timeout: AbortSignal
-
-4) createProvider(config?: Partial<LlmConfig>):
-   - mock → MockLLMProvider
-   - openai-compatible → OpenAICompatibleProvider
-   - default: mock if no key, else openai-compatible
-
-5) .env.example:
-   INFINITY_LLM_PROVIDER=openai-compatible
-   INFINITY_LLM_BASE_URL=http://localhost:20128/v1
-   INFINITY_LLM_API_KEY=
-   INFINITY_LLM_MODEL=kr/claude-haiku-4.5
-
-6) .gitignore: .env .env.local
-7) НЕ хардкодить sk-... в исходники.
-
-DoD: unit test createProvider with fake config uses baseUrl/model;
-     typecheck green; STATUS note T1.
-```
+Сравнение с **1–3.png** (старые): там был **seed demo** (Architecture/IPC) и mock RIGHT.  
+Сейчас — **наша demo map** с реальными package-узлами. P1 `loadData`/`initialData` **отработал**.
 
 ---
 
-## T2 — Wire main: buildSemanticMap uses config (не always mock)
+## Что работает (подтверждено UI)
 
-```
-Этап T2 ONLY. apps/desktop/src/main/index.ts
-
-1) workspace:buildSemanticMap(workspacePath, options?: { force?: boolean; useMock?: boolean })
-2) Provider:
-   const cfg = await loadLlmConfig() // from env + config:get('llm')
-   const llm = options?.useMock ? new MockLLMProvider() : createProvider(cfg)
-3) Log (no secrets): provider name, model, baseUrl host only
-4) On LLM fail: fallback Mock once + diagnostics.warning; OR surface error to UI
-5) force=true: skip cache (regenerate)
-
-DoD: with env set to localhost haiku, Open Folder / Regenerate
-     calls real API (not mock) when provider=openai-compatible.
-     Without key → mock. typecheck.
-```
-
-**Test env for agent shell:**
-```bash
-export INFINITY_LLM_PROVIDER=openai-compatible
-export INFINITY_LLM_BASE_URL=http://localhost:20128/v1
-export INFINITY_LLM_API_KEY='sk-99e1d2510daa5159-d66de2-710a006b'
-export INFINITY_LLM_MODEL='kr/claude-haiku-4.5'
-cd /home/resu/Documents/dev/ast-canvas && pnpm dev
-# Open fixtures/mini-project, Regenerate
-```
+1. **Canvas2D graph** — nodes, curved edges, selection glow, connection points  
+2. **Semantic nodes** — area/location hierarchy (1→1a, 2→2a/b/c, 3→…)  
+3. **RIGHT content** — не `Node: node_9`, а «3 · semantic (LLM)» + summary + meta  
+4. **fileAnchors** — кликабельные пути semantic package (как proto1 cards)  
+5. **Codemap tab** — anchors + `traceIds: ["3"]`  
+6. **Pipeline card** — runtime steps на canvas (документация-in-graph)  
+7. **Split** не ломается при переключении вкладок  
 
 ---
 
-## T3 — Codemap-first prompt (few-shot) + optional canvas project
+## Findings
+
+### P1 — Source + workspace
+
+**demo4:**  
+`open 'packages/semantic/src/buildSemanticMap.ts'` → ENOENT  
+
+Причины:
+- Toolbar без `📁 workspace` → **Open Folder не делали** (или lastWorkspace не поднялся)
+- `readFile` + sandbox требуют path **внутри** `lastWorkspacePath`
+- relative path без join к root → open cwd, не monorepo
+
+**Fix (агенту):**
+1. Open Folder **до** source (или auto-load last + показать в toolbar)  
+2. `readFile`: если relative → `join(workspaceRoot, path)` **в main**, не только в renderer  
+3. Если `!workspaceRoot` — UI: «Сначала Open Folder» (не raw ENOENT)  
+4. Toolbar всегда: path · files · nodes · Regenerate когда workspace есть  
+
+### P2 — Demo load path vs product path
+
+Карта на LEFT = `demo_project_map`, но product flow (Open Folder → buildSemanticMap → cache) **не виден** на demo1–4.
+
+Нужно одно из:
+- Load demo **как** `semantic-map.canvas` после Open Folder monorepo root  
+- Кнопка **Load demo map**  
+- Docs: «для demo4: Open Folder = repo root, потом click anchor»
+
+### P2 — Content raw markdown
+
+В RIGHT body остаётся `## 3 · semantic…` — strip `#` только на canvas labels.  
+Strip/render markdown в Content panel.
+
+### P2 — Toolbar chrome
+
+Без workspace UX «половина продукта»: нет regenerate, cache badge, loading.
+
+### P3
+
+| Item | Note |
+|------|------|
+| Edge spaghetti | OK for demo density; Phase 5 layout polish |
+| Codemap ≠ DepGraph | anchors only — Phase 5–6 real imports |
+| Source not monaco | expected Phase 7 |
+| File node research | file type on canvas — open/preview TBD |
+| Viewport | demo1 fit ok; demo2–4 zoomed to lower cluster — fine |
+
+---
+
+## Проект vs North Star
+
+| Инвариант | demo1–4 |
+|-----------|---------|
+| Electron app | ✅ |
+| LEFT canvas always | ✅ |
+| RIGHT empty\|content\|codemap\|source | ✅ modes |
+| Semantic map nodes/edges | ✅ demo map |
+| Click → node content | ✅ |
+| Anchors → source | ⚠️ path broken without WS |
+| Open project → LLM map | ⬜ not shown on these shots |
+| Real AST deps | ⬜ Phase 5+ |
+
+**Score prototype (visual):** **8/10**  
+**Score product completeness:** **6.5/10** (source + toolbar + open-folder loop)
+
+---
+
+## Сводка: demo canvas
+
+`docs/demo_project_map.canvas` на экране:
+
+- Области **1–7** (desktop, canvas-core, semantic, schema, ast-graph, session, detail)  
+- Drill **2a–2c**, **3** + anchors semantic/*  
+- Pipeline card  
+- Связи import/call/semantic  
+
+Совпадает с задумкой proto1/proto2 (packages as cards + graph).
+
+---
+
+## Фиксы — приоритет (задачи агенту)
+
+### F1 — Source path + workspace (P1)
 
 ```
-Этап T3 ONLY. packages/semantic prompts.
+1) main file:read: resolve relative to lastWorkspacePath; if !workspace return clear error
+2) App: if no workspacePath and user clicks anchor → toast "Open Folder first"
+3) Toolbar: show workspace path whenever lastWorkspace loaded
+4) Manual smoke: Open Folder = /path/to/ast-canvas → Content → Codemap → Source shows real file
+```
 
-Цель первой генерации: формат langgraph.codemap
-  область id "1","2" → узлы "1a","1b"...
+### F2 — Load demo as first-class
 
-1) packages/semantic/src/prompts.ts:
-   - SYSTEM_CODEMAP (иерархия id, only JSON, rules)
-   - EXAMPLE_CODEMAP_MINI (мини-пример 2 traces / 1a,1b,2a,2b)
-   - buildCodemapUserPrompt(pack, projectName)
+```
+Menu/Toolbar "Load demo map" → read docs/demo_project_map.canvas
+  OR copy to .infinity-canvas/semantic-map.canvas when Open Folder is monorepo root
+Set mapNodeCount from loaded doc
+```
 
-2) buildSemanticMap options:
-   mode: 'canvas' | 'codemap'  (default: keep canvas for LEFT;
-          add buildCodemap / mode codemap for test)
+### F3 — Content polish
 
-   Рекомендация для Haiku-теста:
-   - mode='codemap' → parseCodemap from schema
-   - then projectCodemapToCanvas(codemap) → CanvasDocument for LEFT
-     (trace → semantic node id=trace.id; optional location nodes id=1a
-      or fileAnchors only — MVP: area nodes + edges between related traces)
+```
+Strip ## from RIGHT title/body; show semantic.summary as primary text
+```
 
-3) MVP projection:
-   - one canvas node per trace (id "1","2")
-   - text = title + description
-   - semantic: { kind:'area', summary, traceIds:[id], fileAnchors: locations.map(path) }
-   - edges: sequential 1→2→3 kind=semantic
-   - grid layout
+### F4 — Docs
 
-4) Tests:
-   - mock still works for canvas mode
-   - unit: projectCodemapToCanvas on EXAMPLE → nodes ids 1,2 present
-   - optional live test skipped unless INFINITY_LLM_LIVE=1
-
-DoD: prompts.ts exists; codemap mode parseCodemap validates;
-     projection → parseCanvas OK. STATUS T3.
+```
+docs/DEMO.md: steps for demo1–4 screenshots + Open Folder requirement for Source
 ```
 
 ---
 
-## T4 — Live integration test script (Haiku)
-
-```
-Этап T4 ONLY. Script + docs, не e2e Electron обязательно.
-
-packages/semantic/scripts/live-haiku-smoke.ts (or tools/):
-
-1) Read env INFINITY_*
-2) indexWorkspace(fixtures/mini-project)
-3) contextPacker
-4) createProvider(openai-compatible, model kr/claude-haiku-4.5, base localhost:20128)
-5) buildSemanticMap(..., mode codemap or canvas)
-6) Write output to /tmp/infinity-haiku-map.json (and .canvas if projected)
-7) Print: node count, edge count, first 3 titles, provider name
-8) Exit 1 if parse fails
-
-package.json script:
-  "test:live-llm": "INFINITY_LLM_LIVE=1 tsx packages/semantic/scripts/live-haiku-smoke.ts"
-
-Run only when gateway up.
-DoD: script succeeds against real Haiku; document in STATUS.
-Do NOT commit API key or /tmp artifacts.
-```
-
----
-
-## T5 — UI Settings (минимальный settings panel)
-
-```
-Этап T5 ONLY (optional after T2–T4).
-
-Settings UI or config:set('llm', {...}):
-  provider: mock | openai-compatible
-  baseUrl, model, apiKey (password field)
-  "Test connection" button → short complete("pong")
-  Save to userData config/llm.json (not workspace git)
-
-Wire createProvider from saved config in main.
-DoD: can set localhost + haiku without export env every time.
-```
-
----
-
-## Порядок
-
-```
-T0 smoke curl
- → T1 config + provider
- → T2 main wire (drop forced mock)
- → T3 codemap few-shot prompts + projection
- → T4 live-haiku-smoke script
- → T5 settings UI (optional)
-```
-
----
-
-## Master prompt агенту
-
-```
-Проект: /home/resu/Documents/dev/ast-canvas
-
-Тест-LLM (НЕ коммитить ключ в git):
-  model:   kr/claude-haiku-4.5
-  baseUrl: http://localhost:20128/v1
-  apiKey:  из env INFINITY_LLM_API_KEY (user will export)
-  provider: openai-compatible
-
-Сейчас ТОЛЬКО этап: T1
-(затем T2, T3, T4 по DoD)
-
-Требования:
-- OpenAI-compatible POST {baseUrl}/chat/completions
-- createProvider(config) with baseUrl/model/apiKey
-- workspace:buildSemanticMap must NOT always use Mock
-- Codemap init prompt: areas "1","2" + nodes "1a","1b" + EXAMPLE few-shot
-- Project codemap → canvas for LEFT
-- .env.example without secrets; .gitignore .env*
-- pnpm typecheck + unit tests green
-- Live tests only if gateway responds
-
-Update docs/STATUS.md. Append session notes.
-```
-
----
-
-## Env one-liner для пользователя
+## Рекомендуемый smoke (после F1)
 
 ```bash
-export INFINITY_LLM_PROVIDER=openai-compatible
-export INFINITY_LLM_BASE_URL='http://localhost:20128/v1'
-export INFINITY_LLM_API_KEY='sk-99e1d2510daa5159-d66de2-710a006b'
-export INFINITY_LLM_MODEL='kr/claude-haiku-4.5'
+pnpm dev
+# Open Folder → /home/resu/Documents/dev/ast-canvas
+# Expect toolbar: 📁 ast-canvas · N files · M nodes
+# Click "3 · semantic" → Content OK
+# Codemap → click buildSemanticMap.ts → Source shows real file
+# Regenerate (mock/haiku) optional
 ```
-
-После T1–T2: `pnpm dev` → Open `fixtures/mini-project` → Regenerate.  
-После T4: `pnpm test:live-llm`.
 
 ---
 
-## DoD «Haiku live OK»
+## Одной строкой
 
-- [ ] curl T0 green  
-- [ ] Regenerate / smoke script: `parseCanvas` или `parseCodemap` OK  
-- [ ] LEFT показывает ≥4 semantic/area nodes (не demo seed)  
-- [ ] Ключ не в git history  
-- [ ] Mock всё ещё default без env  
-
-**Старт агента: T0 (curl) → T1.**
+Демо **доказало**: карта monorepo + split + content/codemap **живые**; **demo4** вскрыл дыру **Source без Open Folder / resolve path**. Дальше: F1 path+toolbar, затем Phase 5 DepGraph.

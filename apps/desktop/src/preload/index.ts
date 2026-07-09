@@ -17,12 +17,14 @@ const api = {
   }> => ipcRenderer.invoke('workspace:listFiles', dirPath),
 
   // File operations
-  readFile: (filePath: string): Promise<{
+  readFile: (filePath: string, resolveRelative?: boolean): Promise<{
     content?: string;
     size?: number;
     mtime?: string;
+    path?: string;
+    needsWorkspace?: boolean;
     error?: string;
-  }> => ipcRenderer.invoke('file:read', filePath),
+  }> => ipcRenderer.invoke('file:read', filePath, resolveRelative),
 
   writeFile: (filePath: string, content: string): Promise<{
     success?: boolean;
@@ -36,7 +38,15 @@ const api = {
   setConfig: (key: string, value: unknown): Promise<{ success?: boolean; error?: string }> =>
     ipcRenderer.invoke('config:set', key, value),
 
-  // Semantic map pipeline
+  // DepGraph
+  getDepGraph: (workspacePath: string, fileAnchors?: string[]): Promise<{
+    center?: string;
+    nodeCount?: number;
+    edgeCount?: number;
+    edges?: { from: string; to: string; kind: string; line?: number }[];
+    nodes?: { id: string; name?: string; kind?: string }[];
+    error?: string;
+  }> => ipcRenderer.invoke('workspace:depGraph', workspacePath, fileAnchors),
   buildSemanticMap: (workspacePath: string, options?: { force?: boolean; useMock?: boolean }): Promise<{
     json?: string;
     fileCount?: number;

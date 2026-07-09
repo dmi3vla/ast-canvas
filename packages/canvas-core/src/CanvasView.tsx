@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react
 import { CanvasState } from './CanvasState';
 import { CanvasRenderer } from './CanvasRenderer';
 import { InputHandler } from './InputHandler';
+import { DEMO_CANVAS_JSON } from './demoCanvas';
 
 export interface CanvasViewHandle {
   state: CanvasState;
@@ -39,7 +40,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
           return;
         }
       } else if (state.nodes.length === 0) {
-        seedDemoNodes(state);
+        // Load demo canvas as default
+        try {
+          const demo = JSON.parse(DEMO_CANVAS_JSON);
+          state.loadCanvasData(demo);
+        } catch { /* ignore, will be empty */ }
       }
 
       if (canvas) {
@@ -133,20 +138,3 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
     );
   },
 );
-
-function seedDemoNodes(state: CanvasState): void {
-  state.createNode('## Architecture Overview\n\nElectron main process + React renderer.\nSplit-pane layout with resizable panels.', -300, -150);
-  state.createNode('### Canvas Core\n\nCanvas2D rendering engine.\nPan, zoom, drag, connections.\nObsidian .canvas format.', 100, -150);
-  state.createNode('README.md\n\nProject documentation.\nSetup instructions.', 500, -150);
-  state.createNode('IPC Bridge\n\ncontextBridge API.\nTyped contracts.', -300, 150);
-  state.createNode('AppShell\n\nLEFT|RIGHT split.\n4 detail modes.', 100, 150);
-
-  const nodes = state.nodes;
-  if (nodes.length >= 5) {
-    state.createEdge(nodes[0].id, nodes[1].id, 'right', 'left');
-    state.createEdge(nodes[0].id, nodes[2].id, 'right', 'left');
-    state.createEdge(nodes[0].id, nodes[3].id, 'bottom', 'top');
-    state.createEdge(nodes[1].id, nodes[4].id, 'bottom', 'top');
-    state.createEdge(nodes[3].id, nodes[4].id, 'right', 'left');
-  }
-}

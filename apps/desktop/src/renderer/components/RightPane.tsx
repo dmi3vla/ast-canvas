@@ -27,7 +27,11 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource 
   }
 
   const title = node?.text?.split('\n')[0]?.replace(/^#+\s*/, '') || nodeId;
-  const summary = node?.semantic?.summary || node?.text || `Node ${nodeId}`;
+  const summary = node?.semantic?.summary || '';
+  // Strip markdown headers from raw text for body display
+  const cleanBody = node?.text
+    ? node.text.split('\n').filter(l => !l.match(/^#+\s/)).join('\n').trim()
+    : '';
   const anchors = node?.semantic?.fileAnchors || (node?.file ? [node.file] : []);
   const kind = node?.semantic?.kind || node?.type || 'text';
 
@@ -65,9 +69,9 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource 
       {mode === 'content' && (
         <div className="right-pane__content">
           <p className="right-pane__summary" style={{ whiteSpace: 'pre-wrap' }}>
-            {summary}
+            {summary || cleanBody || `Node ${nodeId}`}
           </p>
-          {node?.text && node.semantic?.summary && (
+          {cleanBody && summary && (
             <pre style={{
               marginTop: 12,
               padding: 10,
@@ -79,7 +83,7 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource 
               maxHeight: 200,
               overflow: 'auto',
             }}>
-              {node.text}
+              {cleanBody}
             </pre>
           )}
           <div className="right-pane__meta">
@@ -119,28 +123,7 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource 
 
       {mode === 'codemap' && (
         <div className="right-pane__content">
-          <div className="codemap-section">
-            <div className="codemap-section__title">📍 Anchors / traces (from node)</div>
-            {anchors.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                No file anchors on this node yet. Phase 5–7 will fill deps from DepGraph / codemap.
-              </p>
-            ) : (
-              <ul className="codemap-list">
-                {anchors.map((a, i) => (
-                  <li
-                    key={a}
-                    className="codemap-list__item"
-                    onClick={() => onOpenSource(a, 1)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <span className="codemap-list__icon">[{String.fromCharCode(97 + (i % 26))}]</span>
-                    <span style={{ color: 'var(--accent)' }}>{a}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <DepGraphSection anchors={anchors} nodeId={nodeId} onOpenSource={onOpenSource} />
           {node?.semantic?.traceIds && node.semantic.traceIds.length > 0 && (
             <div className="codemap-section">
               <div className="codemap-section__title">🔗 Trace ids</div>
@@ -176,6 +159,103 @@ export function RightPane({ mode, nodeId, node, source, onSetMode, onOpenSource 
   );
 }
 
+function DepGraphSection({ anchors, nodeId, onOpenSource }: { anchors: string[]; nodeId: string; onOpenSource: (path: string, line: number) => void }) {
+  const [depData, setDepData] = React.useState<{
+    edges?: { from: string; to: string; kind: string; line?: number }[];
+    nodes?: { id: string; name?: string; kind?: string }[];
+    center?: string;
+    error?: string;
+  } | null>(null);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (anchors.length === 0 || !window.electronAPI?.getDepGraph) return;
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await window.electronAPI!.getDepGraph('', anchors);
+        if (!cancelled) setDepData(data);
+      } catch {
+        if (!cancelled) setDepData({ error: 'Failed to load dep graph' });
+      }
+      if (!cancelled) setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [anchors.join(',')]);
+
+  if (loading) {
+    return <div className="codemap-section" style={{ color: 'var(--text-muted)' }}>⏳ Loading dependency graph...</div>;
+  }
+
+  if (depData?.error || (!depData?.edges && !depData?.nodes)) {
+    // Fallback: show static anchors
+    return (
+      <div className="codemap-section">
+        <div className="codemap-section__title">📍 File anchors (from semantic node)</div>
+        {anchors.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No file anchors on this node. Open a workspace to compute deps.</p>
+        ) : (
+          <ul className="codemap-list">
+            {anchors.map((a, i) => (
+              <li key={a} className="codemap-list__item" onClick={() => onOpenSource(a, 1)} style={{ cursor: 'pointer' }}>
+                <span className="codemap-list__icon">[{String.fromCharCode(97 + (i % 26))}]</span>
+                <span style={{ color: 'var(--accent)' }}>{a}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
+  // Real dep-graph data
+  const depsIn = (depData.edges || []).filter(e => e.to === depData.center);
+  const depsOut = (depData.edges || []).filter(e => e.from === depData.center);
+
+  return (
+    <>
+      <div className="codemap-section">
+        <div className="codemap-section__title">📦 Deps in ({depsIn.length})</div>
+        {depsIn.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No incoming dependencies</p>
+        ) : (
+          <ul className="codemap-list">
+            {depsIn.map((e, i) => (
+              <li key={i} className="codemap-list__item" onClick={() => onOpenSource(e.from, e.line || 1)} style={{ cursor: 'pointer' }}>
+                <span className="codemap-list__icon">📥</span>
+                <span style={{ color: 'var(--accent)' }}>{e.from}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{e.kind}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="codemap-section">
+        <div className="codemap-section__title">📤 Derives out ({depsOut.length})</div>
+        {depsOut.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No outgoing dependencies</p>
+        ) : (
+          <ul className="codemap-list">
+            {depsOut.map((e, i) => (
+              <li key={i} className="codemap-list__item" onClick={() => onOpenSource(e.to, e.line || 1)} style={{ cursor: 'pointer' }}>
+                <span className="codemap-list__icon">📤</span>
+                <span style={{ color: 'var(--accent)' }}>{e.to}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{e.kind}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+        Center: {depData.center} · {depData.nodes?.length || 0} nodes · {depData.edges?.length || 0} edges
+      </div>
+    </>
+  );
+}
+
 function SourcePreview({ path, line }: { path: string; line: number }) {
   const [text, setText] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -188,7 +268,7 @@ function SourcePreview({ path, line }: { path: string; line: number }) {
         return;
       }
       // Try as-is; main only allows paths under workspace
-      const res = await window.electronAPI.readFile(path);
+      const res = await window.electronAPI.readFile(path, true);
       if (cancelled) return;
       if (res.error) {
         // try join is not available — show error

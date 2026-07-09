@@ -8,10 +8,12 @@ interface ElectronAPI {
     files: { name: string; isDirectory: boolean; path: string }[];
     error?: string;
   }>;
-  readFile: (filePath: string) => Promise<{
+  readFile: (filePath: string, resolveRelative?: boolean) => Promise<{
     content?: string;
     size?: number;
     mtime?: string;
+    path?: string;
+    needsWorkspace?: boolean;
     error?: string;
   }>;
   writeFile: (filePath: string, content: string) => Promise<{
@@ -26,6 +28,14 @@ interface ElectronAPI {
     fromCache?: boolean;
     nodeCount?: number;
     provider?: string;
+    error?: string;
+  }>;
+  getDepGraph: (workspacePath: string, fileAnchors?: string[]) => Promise<{
+    center?: string;
+    nodeCount?: number;
+    edgeCount?: number;
+    edges?: { from: string; to: string; kind: string; line?: number }[];
+    nodes?: { id: string; name?: string; kind?: string }[];
     error?: string;
   }>;
 }

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { RightMode } from '@infinity-canvas/detail-pane';
 import type { CanvasViewHandle, ICNode } from '@infinity-canvas/canvas-core';
+import { DEMO_CANVAS_JSON } from '@infinity-canvas/canvas-core';
 import { Toolbar } from './components/Toolbar';
 import { LeftPane } from './components/LeftPane';
 import { Splitter } from './components/Splitter';
@@ -125,19 +126,19 @@ export function App() {
   }, []);
 
   const handleOpenSource = useCallback((path: string, line: number) => {
+    if (!state.workspacePath && !path.startsWith('/')) {
+      // No workspace — can't resolve relative paths
+      alert('Please open a workspace folder first to view source files.\n\nUse "Open Folder" in the toolbar.');
+      return;
+    }
     setState(s => {
-      // Resolve relative paths against workspace for main path guard
       let abs = path;
       if (s.workspacePath && !path.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(path)) {
         abs = `${s.workspacePath.replace(/\/$/, '')}/${path.replace(/^\.\//, '')}`;
       }
-      return {
-        ...s,
-        rightMode: 'source',
-        source: { path: abs, line },
-      };
+      return { ...s, rightMode: 'source', source: { path: abs, line } };
     });
-  }, []);
+  }, [state.workspacePath]);
 
   const handleSetRatio = useCallback((ratio: number) => {
     setState(s => ({ ...s, leftRatio: ratio }));
@@ -172,6 +173,20 @@ export function App() {
     }
   }, [state.workspacePath, buildMap]);
 
+  const handleLoadDemo = useCallback(() => {
+    setCanvasData(DEMO_CANVAS_JSON);
+    setState(s => ({
+      ...s,
+      workspacePath: null,
+      fileCount: 0,
+      mapNodeCount: 0,
+      fromCache: false,
+      selectedNodeId: null,
+      selectedNode: null,
+      rightMode: 'empty',
+    }));
+  }, []);
+
   // Keyboard: Esc → clear selection
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -193,6 +208,7 @@ export function App() {
         fromCache={state.fromCache}
         onOpenFolder={handleOpenFolder}
         onRegenerate={handleRegenerate}
+        onLoadDemo={handleLoadDemo}
       />
       <div className="app-main">
         <div className="left-pane" style={{ flex: `0 0 ${state.leftRatio * 100}%` }}>

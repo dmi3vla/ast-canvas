@@ -8,14 +8,15 @@ interface ToolbarProps {
   fromCache: boolean;
   onOpenFolder: () => void;
   onRegenerate: () => void;
+  onLoadDemo: () => void;
 }
 
-export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fromCache, onOpenFolder, onRegenerate }: ToolbarProps) {
+export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fromCache, onOpenFolder, onRegenerate, onLoadDemo }: ToolbarProps) {
   return (
     <div className="toolbar">
       <span className="toolbar__title">∞ Infinity Canvas</span>
       <button onClick={onOpenFolder}>Open Folder</button>
-      {workspacePath && (
+      {workspacePath ? (
         <>
           <span className="toolbar__workspace" title={workspacePath}>
             📁 {workspacePath.split('/').pop() || workspacePath}
@@ -25,6 +26,15 @@ export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fro
           </span>
           <button onClick={onRegenerate} disabled={isLoading} style={{ opacity: isLoading ? 0.5 : 1 }}>
             🔄 Regenerate
+          </button>
+        </>
+      ) : (
+        <>
+          <span className="toolbar__workspace" style={{ color: 'var(--text-muted)' }}>
+            Demo mode — open a folder for full features
+          </span>
+          <button onClick={onLoadDemo} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
+            📋 Reload Demo
           </button>
         </>
       )}

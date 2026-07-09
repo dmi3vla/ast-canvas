@@ -3,6 +3,11 @@ import { join, resolve, normalize, relative } from 'path';
 import { is } from '@electron-toolkit/utils';
 import { readFile, writeFile, readdir, stat } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
+import { indexWorkspace } from '@infinity-canvas/ast-graph';
+import { buildDepGraph } from '@infinity-canvas/ast-graph';
+import { contextPacker, createProvider, MockLLMProvider, buildSemanticMap } from '@infinity-canvas/semantic';
+import { serializeDocument } from '@infinity-canvas/schema';
+import { SessionStore } from '@infinity-canvas/session';
 
 let mainWindow: BrowserWindow | null = null;
 let lastWorkspacePath: string | null = null;
@@ -104,14 +109,27 @@ ipcMain.handle('workspace:listFiles', async (_event, dirPath: string) => {
   }
 });
 
-ipcMain.handle('file:read', async (_event, filePath: string) => {
-  if (!isPathInWorkspace(filePath)) {
-    return { error: 'Access denied: file is outside the workspace' };
+ipcMain.handle('file:read', async (_event, filePath: string, resolveRelative?: boolean) => {
+  let resolved = filePath;
+
+  // Resolve relative paths against workspace
+  if (resolveRelative && lastWorkspacePath && !filePath.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(filePath)) {
+    resolved = join(lastWorkspacePath, filePath);
   }
+
+  if (!isPathInWorkspace(resolved)) {
+    return {
+      error: lastWorkspacePath
+        ? `Access denied: "${filePath}" is outside the workspace`
+        : 'No workspace open. Use "Open Folder" first.',
+      needsWorkspace: !lastWorkspacePath,
+    };
+  }
+
   try {
-    const content = await readFile(filePath, 'utf-8');
-    const stats = await stat(filePath);
-    return { content, size: stats.size, mtime: stats.mtime.toISOString() };
+    const content = await readFile(resolved, 'utf-8');
+    const stats = await stat(resolved);
+    return { content, size: stats.size, mtime: stats.mtime.toISOString(), path: resolved };
   } catch (err) {
     return { error: String(err) };
   }
@@ -174,14 +192,6 @@ ipcMain.handle('workspace:getLast', async () => {
 ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: string, options?: { force?: boolean; useMock?: boolean }) => {
   try {
     lastWorkspacePath = workspacePath;
-
-    // Dynamic imports
-    const { indexWorkspace } = await import('@infinity-canvas/ast-graph');
-    const { contextPacker } = await import('@infinity-canvas/semantic');
-    const { createProvider, MockLLMProvider } = await import('@infinity-canvas/semantic');
-    const { buildSemanticMap } = await import('@infinity-canvas/semantic');
-    const { serializeDocument } = await import('@infinity-canvas/schema');
-    const { SessionStore } = await import('@infinity-canvas/session');
 
     // 1) Index workspace
     const files = await indexWorkspace(workspacePath);
@@ -250,6 +260,41 @@ ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: strin
       nodeCount: result.diagnostics.nodeCount,
       provider: providerName,
     };
+  } catch (err) {
+    return { error: String(err) };
+  }
+});
+
+// ── DepGraph for RIGHT Codemap ─────────────────────────
+
+ipcMain.handle('workspace:depGraph', async (_event, _workspacePath: string, nodeFileAnchors?: string[]) => {
+  try {
+    if (!lastWorkspacePath) return { error: 'No workspace open' };
+
+    const files = await indexWorkspace(lastWorkspacePath);
+    const g = await buildDepGraph(files, {
+      workspaceRoot: lastWorkspacePath,
+      skipBareModules: false,
+      maxFiles: 200,
+    });
+
+    if (nodeFileAnchors && nodeFileAnchors.length > 0) {
+      const { egoNetwork } = await import('@infinity-canvas/schema');
+      const anchor = nodeFileAnchors[0];
+      const nodeId = Object.keys(g.nodes).find(id => id.endsWith(anchor) || anchor.endsWith(id));
+      if (nodeId) {
+        const ego = egoNetwork(g, nodeId, 1);
+        return {
+          center: nodeId,
+          nodeCount: ego.nodes.size,
+          edgeCount: ego.edges.length,
+          edges: ego.edges.map(e => ({ from: e.from, to: e.to, kind: e.kind, line: e.loc?.line })),
+          nodes: [...ego.nodes].map(id => ({ id, name: g.nodes[id]?.name, kind: g.nodes[id]?.kind })),
+        };
+      }
+    }
+
+    return { nodeCount: Object.keys(g.nodes).length, edgeCount: g.edges.length };
   } catch (err) {
     return { error: String(err) };
   }
