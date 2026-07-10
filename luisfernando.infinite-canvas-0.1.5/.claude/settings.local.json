@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__create_directory",
+      "mcp__server2__search",
+      "Bash(npm run compile:*)",
+      "Bash(grep:*)",
+      "Bash(awk:*)",
+      "Bash(sed:*)",
+      "Bash(node:*)",
+      "Bash(touch:*)",
+      "Bash(rm:*)",
+      "Bash(npm run watch:*)"
+    ],
+    "deny": []
+  }
+}
