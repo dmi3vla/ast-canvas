@@ -1,4 +1,5 @@
 import type { CanvasDocument } from '@infinity-canvas/schema';
+import { withPromptLogging } from './promptLog';
 
 // ── LLM Provider Interface ─────────────────────────────
 
@@ -82,21 +83,30 @@ function readEnvConfig(): Partial<LlmConfig> {
   };
 }
 
-/** Parse SSE stream into a single string */
+/** Parse SSE stream into a single string (OpenAI-compatible + reasoning gateways). */
 async function parseSSEStream(response: Response): Promise<string> {
   const text = await response.text();
   const lines = text.split('\n');
   let content = '';
+  let reasoning = '';
   for (const line of lines) {
-    if (line.startsWith('data: ')) {
-      try {
-        const chunk = JSON.parse(line.slice(6));
-        const delta = chunk.choices?.[0]?.delta?.content;
-        if (delta) content += delta;
-      } catch { /* skip unparseable chunks */ }
-    }
+    if (!line.startsWith('data: ')) continue;
+    const payload = line.slice(6).trim();
+    if (!payload || payload === '[DONE]') continue;
+    try {
+      const chunk = JSON.parse(payload);
+      const choice = chunk.choices?.[0];
+      const delta = choice?.delta || {};
+      if (typeof delta.content === 'string') content += delta.content;
+      if (typeof delta.reasoning_content === 'string') reasoning += delta.reasoning_content;
+      // some gateways put full message on last chunk
+      const msg = choice?.message;
+      if (msg?.content && typeof msg.content === 'string') content = msg.content;
+    } catch { /* skip unparseable chunks */ }
   }
-  return content;
+  // Prefer assistant content; if empty (reasoning-only streams) fall back to reasoning tail
+  if (content.trim()) return content;
+  return reasoning;
 }
 
 export class OpenAICompatibleProvider implements LLMProvider {
@@ -109,7 +119,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
       baseUrl: config?.baseUrl || env.baseUrl || 'https://api.openai.com/v1',
       apiKey: config?.apiKey || env.apiKey || '',
       model: config?.model || env.model || 'gpt-4o',
-      timeoutMs: config?.timeoutMs || 60_000,
+      timeoutMs: config?.timeoutMs || 120_000,
     };
   }
 
@@ -122,7 +132,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
     const timer = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+      const response = await fetch(`${this.config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +142,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
           model: this.config.model,
           messages,
           temperature: 0.3,
-          max_tokens: 4096,
+          max_tokens: 8192,
           stream: false,
         }),
         signal: controller.signal,
@@ -146,13 +156,25 @@ export class OpenAICompatibleProvider implements LLMProvider {
       const contentType = response.headers.get('content-type') || '';
 
       // Handle SSE streaming (some gateways ignore stream:false)
-      if (contentType.includes('text/event-stream')) {
-        return await parseSSEStream(response);
+      if (contentType.includes('text/event-stream') || contentType.includes('text/plain')) {
+        const body = await response.text();
+        if (body.trimStart().startsWith('data:')) {
+          // Re-wrap as Response for parseSSEStream
+          return await parseSSEStream(new Response(body, { headers: { 'content-type': 'text/event-stream' } }));
+        }
+        // might still be JSON mislabeled
+        try {
+          const data = JSON.parse(body);
+          return data.choices?.[0]?.message?.content || '';
+        } catch {
+          return body;
+        }
       }
 
       // Standard JSON response
       const data = await response.json();
-      return data.choices?.[0]?.message?.content || '';
+      const msg = data.choices?.[0]?.message;
+      return msg?.content || msg?.reasoning_content || '';
     } finally {
       clearTimeout(timer);
     }
@@ -161,18 +183,38 @@ export class OpenAICompatibleProvider implements LLMProvider {
 
 // ── Factory ────────────────────────────────────────────
 
-/** Create provider from config + env. Default: mock if no key, else openai-compatible. */
+function isLocalBaseUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  return /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(url);
+}
+
+/** Create provider from config + env. Default: mock if no key, else openai-compatible.
+ *  Local endpoints (localhost) accept missing key → use `local` dummy Bearer.
+ *  All providers are wrapped with prompt in/out logging (see promptLog.ts). */
 export function createProvider(config?: Partial<LlmConfig>): LLMProvider {
   const env = readEnvConfig();
   const provider = config?.provider || env.provider || 'mock';
 
+  let llm: LLMProvider;
+  let model: string | undefined;
+
   if (provider === 'openai-compatible') {
-    const apiKey = config?.apiKey || env.apiKey || '';
-    if (!apiKey) return new MockLLMProvider(); // fallback
-    return new OpenAICompatibleProvider({ ...config, apiKey });
+    const baseUrl = config?.baseUrl || env.baseUrl;
+    let apiKey = config?.apiKey || env.apiKey || '';
+    // Local OpenAI-compatible proxies often need no real key
+    if (!apiKey && isLocalBaseUrl(baseUrl)) apiKey = 'local';
+    if (!apiKey) {
+      llm = new MockLLMProvider();
+    } else {
+      model = config?.model || env.model;
+      llm = new OpenAICompatibleProvider({ ...config, baseUrl, apiKey });
+    }
+  } else {
+    llm = new MockLLMProvider();
   }
 
-  return new MockLLMProvider();
+  // Log full chat request + response for prompt debugging
+  return withPromptLogging(llm, { model });
 }
 
 // ── Legacy alias ───────────────────────────────────────

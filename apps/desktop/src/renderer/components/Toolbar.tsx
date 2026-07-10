@@ -9,12 +9,17 @@ interface ToolbarProps {
   onOpenFolder: () => void;
   onRegenerate: () => void;
   onLoadDemo: () => void;
+  onLoadPlanVsResult: () => void;
   onExport: () => void;
   onImport: () => void;
   onImportLanggraph: () => void;
 }
 
-export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fromCache, onOpenFolder, onRegenerate, onLoadDemo, onExport, onImport, onImportLanggraph }: ToolbarProps) {
+export function Toolbar({
+  workspacePath, fileCount, isLoading, mapNodeCount, fromCache,
+  onOpenFolder, onRegenerate, onLoadDemo, onLoadPlanVsResult,
+  onExport, onImport, onImportLanggraph,
+}: ToolbarProps) {
   return (
     <div className="toolbar">
       <span className="toolbar__title">∞ Infinity Canvas</span>
@@ -34,11 +39,8 @@ export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fro
       ) : (
         <>
           <span className="toolbar__workspace" style={{ color: 'var(--text-muted)' }}>
-            Demo mode — open a folder for full features
+            Open Folder · Demo · Plan|Result
           </span>
-          <button onClick={onLoadDemo} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
-            📋 Reload Demo
-          </button>
         </>
       )}
       <span className="toolbar__spacer" />
@@ -55,10 +57,17 @@ export function Toolbar({ workspacePath, fileCount, isLoading, mapNodeCount, fro
           </button>
         </>
       )}
-      <button onClick={onLoadDemo} title="Load demo map" style={{ fontSize: 11, background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
+      <button onClick={onLoadDemo} title="Load monorepo demo map" style={{ fontSize: 11, background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
         📋 Demo
       </button>
-      <span className="toolbar__title" style={{ opacity: 0.5 }}>Phase 8 — LLM Enrich</span>
+      <button
+        onClick={onLoadPlanVsResult}
+        title="PLAN tree (AGENT_PLAN) vs RESULT tree (STATUS) — see docs/VERIFY.md"
+        style={{ fontSize: 11, background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}
+      >
+        🌳 Plan|Result
+      </button>
+      <span className="toolbar__title" style={{ opacity: 0.5 }}>MVP · docs/VERIFY.md</span>
     </div>
   );
 }

@@ -1,0 +1,1094 @@
+{
+  "nodes": [
+    {
+      "id": "title-plan",
+      "type": "text",
+      "x": -200,
+      "y": -700,
+      "width": 400,
+      "height": 80,
+      "color": "6",
+      "text": "# PLAN tree only\nFrom `AGENT_PLAN.md` — intended phases",
+      "semantic": {
+        "kind": "area",
+        "summary": "PLAN tree only\nFrom `AGENT_PLAN.md` — intended phases",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p-root",
+      "type": "semantic",
+      "x": -900,
+      "y": -520,
+      "width": 280,
+      "height": 100,
+      "color": "6",
+      "text": "## PLAN\n`AGENT_PLAN.md`\nWhat we set out to build",
+      "semantic": {
+        "kind": "overview",
+        "summary": "## PLAN\n`AGENT_PLAN.md`\nWhat we set out to build",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p1",
+      "type": "semantic",
+      "x": -900,
+      "y": -400,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P1 Research\nread-only reverse eng",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P1 Research\nread-only reverse eng",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p1.1",
+      "type": "text",
+      "x": -580,
+      "y": -420,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### 1.1 Infinite Canvas arch",
+      "semantic": {
+        "kind": "location",
+        "summary": "1.1 Infinite Canvas arch",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p1.2",
+      "type": "text",
+      "x": -580,
+      "y": -356,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### 1.2 Codemap schema",
+      "semantic": {
+        "kind": "location",
+        "summary": "1.2 Codemap schema",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p1.3",
+      "type": "text",
+      "x": -580,
+      "y": -292,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### 1.3 Code Canvas extract",
+      "semantic": {
+        "kind": "location",
+        "summary": "1.3 Code Canvas extract",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p1.4",
+      "type": "text",
+      "x": -580,
+      "y": -228,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### 1.4 Gap matrix + ADRs",
+      "semantic": {
+        "kind": "location",
+        "summary": "1.4 Gap matrix + ADRs",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p2",
+      "type": "semantic",
+      "x": -900,
+      "y": -200,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P2 Electron scaffold\nSplit LEFT|RIGHT shell",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P2 Electron scaffold\nSplit LEFT|RIGHT shell",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p2.1",
+      "type": "text",
+      "x": -580,
+      "y": -220,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### 2.x electron-vite + React",
+      "semantic": {
+        "kind": "location",
+        "summary": "2.x electron-vite + React",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p2.2",
+      "type": "text",
+      "x": -580,
+      "y": -156,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### Split resizable + persist",
+      "semantic": {
+        "kind": "location",
+        "summary": "Split resizable + persist",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p2.3",
+      "type": "text",
+      "x": -580,
+      "y": -92,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### Toolbar Open Folder",
+      "semantic": {
+        "kind": "location",
+        "summary": "Toolbar Open Folder",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p3",
+      "type": "semantic",
+      "x": -900,
+      "y": 0,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P3 Data model\nZod canvas/codemap/dep",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P3 Data model\nZod canvas/codemap/dep",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p3.1",
+      "type": "text",
+      "x": -580,
+      "y": -20,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### schema canvas + golden",
+      "semantic": {
+        "kind": "location",
+        "summary": "schema canvas + golden",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p3.2",
+      "type": "text",
+      "x": -580,
+      "y": 44,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### codemap parse",
+      "semantic": {
+        "kind": "location",
+        "summary": "codemap parse",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p3.3",
+      "type": "text",
+      "x": -580,
+      "y": 108,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### DepGraph egoNetwork",
+      "semantic": {
+        "kind": "location",
+        "summary": "DepGraph egoNetwork",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p3.4",
+      "type": "text",
+      "x": -580,
+      "y": 172,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### SessionStore cache",
+      "semantic": {
+        "kind": "location",
+        "summary": "SessionStore cache",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p4",
+      "type": "semantic",
+      "x": -900,
+      "y": 200,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P4 LLM Semantic Map\nContextPack → canvas",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P4 LLM Semantic Map\nContextPack → canvas",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p4.1",
+      "type": "text",
+      "x": -580,
+      "y": 180,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### contextPacker",
+      "semantic": {
+        "kind": "location",
+        "summary": "contextPacker",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p4.2",
+      "type": "text",
+      "x": -580,
+      "y": 244,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### Mock + OpenAI provider",
+      "semantic": {
+        "kind": "location",
+        "summary": "Mock + OpenAI provider",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p4.3",
+      "type": "text",
+      "x": -580,
+      "y": 308,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### buildSemanticMap + IPC",
+      "semantic": {
+        "kind": "location",
+        "summary": "buildSemanticMap + IPC",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p4.4",
+      "type": "text",
+      "x": -580,
+      "y": 372,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### cache + Regenerate",
+      "semantic": {
+        "kind": "location",
+        "summary": "cache + Regenerate",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p5",
+      "type": "semantic",
+      "x": -900,
+      "y": 400,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P5 AST imports\nfile-level deps",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P5 AST imports\nfile-level deps",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p5.1",
+      "type": "text",
+      "x": -580,
+      "y": 380,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### import-resolver",
+      "semantic": {
+        "kind": "location",
+        "summary": "import-resolver",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p5.2",
+      "type": "text",
+      "x": -580,
+      "y": 444,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### depGraphBuilder",
+      "semantic": {
+        "kind": "location",
+        "summary": "depGraphBuilder",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p5.3",
+      "type": "text",
+      "x": -580,
+      "y": 508,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### RIGHT DepGraph section",
+      "semantic": {
+        "kind": "location",
+        "summary": "RIGHT DepGraph section",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p6",
+      "type": "semantic",
+      "x": -900,
+      "y": 600,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P6 DepGraph service\ncache + fs.watch",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P6 DepGraph service\ncache + fs.watch",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p6.1",
+      "type": "text",
+      "x": -580,
+      "y": 580,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### DepGraphService mem+disk",
+      "semantic": {
+        "kind": "location",
+        "summary": "DepGraphService mem+disk",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p6.2",
+      "type": "text",
+      "x": -580,
+      "y": 644,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### getEgo union anchors",
+      "semantic": {
+        "kind": "location",
+        "summary": "getEgo union anchors",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p6.3",
+      "type": "text",
+      "x": -580,
+      "y": 708,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### watch invalidate",
+      "semantic": {
+        "kind": "location",
+        "summary": "watch invalidate",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p7",
+      "type": "semantic",
+      "x": -900,
+      "y": 800,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P7 RIGHT UX\nCodemap + Source + nav",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P7 RIGHT UX\nCodemap + Source + nav",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p7.1",
+      "type": "text",
+      "x": -580,
+      "y": 780,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### depth toggle + deps UI",
+      "semantic": {
+        "kind": "location",
+        "summary": "depth toggle + deps UI",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p7.2",
+      "type": "text",
+      "x": -580,
+      "y": 844,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### CodemapBuilder + traces",
+      "semantic": {
+        "kind": "location",
+        "summary": "CodemapBuilder + traces",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p7.3",
+      "type": "text",
+      "x": -580,
+      "y": 908,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### nav stack + breadcrumb",
+      "semantic": {
+        "kind": "location",
+        "summary": "nav stack + breadcrumb",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p7.4",
+      "type": "text",
+      "x": -580,
+      "y": 972,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### Source scroll (Monaco)",
+      "semantic": {
+        "kind": "location",
+        "summary": "Source scroll (Monaco)",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p8",
+      "type": "semantic",
+      "x": -900,
+      "y": 1000,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P8 Enrich depth\nhighlight + I/O + privacy",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P8 Enrich depth\nhighlight + I/O + privacy",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p8.1",
+      "type": "text",
+      "x": -580,
+      "y": 980,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### enrichCodemap + allowlist",
+      "semantic": {
+        "kind": "location",
+        "summary": "enrichCodemap + allowlist",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p8.2",
+      "type": "text",
+      "x": -580,
+      "y": 1044,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### trace → LEFT highlight",
+      "semantic": {
+        "kind": "location",
+        "summary": "trace → LEFT highlight",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p8.3",
+      "type": "text",
+      "x": -580,
+      "y": 1108,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### Export/Import bundle",
+      "semantic": {
+        "kind": "location",
+        "summary": "Export/Import bundle",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p9",
+      "type": "semantic",
+      "x": -900,
+      "y": 1200,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P9 Perf / privacy / polish",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P9 Perf / privacy / polish",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p9.1",
+      "type": "text",
+      "x": -580,
+      "y": 1180,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### Perf budgets + cull",
+      "semantic": {
+        "kind": "location",
+        "summary": "Perf budgets + cull",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p9.2",
+      "type": "text",
+      "x": -580,
+      "y": 1244,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### send samples toggle + redact",
+      "semantic": {
+        "kind": "location",
+        "summary": "send samples toggle + redact",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p9.3",
+      "type": "text",
+      "x": -580,
+      "y": 1308,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### Minimap + Ctrl+F + welcome",
+      "semantic": {
+        "kind": "location",
+        "summary": "Minimap + Ctrl+F + welcome",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p9.4",
+      "type": "text",
+      "x": -580,
+      "y": 1372,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### cache ver + repair + logs",
+      "semantic": {
+        "kind": "location",
+        "summary": "cache ver + repair + logs",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p10",
+      "type": "semantic",
+      "x": -900,
+      "y": 1400,
+      "width": 260,
+      "height": 90,
+      "color": "5",
+      "text": "## P10 Ship\npackage + docs + e2e",
+      "semantic": {
+        "kind": "area",
+        "summary": "## P10 Ship\npackage + docs + e2e",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p10.1",
+      "type": "text",
+      "x": -580,
+      "y": 1380,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### vitest + Playwright e2e",
+      "semantic": {
+        "kind": "location",
+        "summary": "vitest + Playwright e2e",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p10.2",
+      "type": "text",
+      "x": -580,
+      "y": 1444,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### electron-builder installers",
+      "semantic": {
+        "kind": "location",
+        "summary": "electron-builder installers",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p10.3",
+      "type": "text",
+      "x": -580,
+      "y": 1508,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### ARCHITECTURE + USER_GUIDE",
+      "semantic": {
+        "kind": "location",
+        "summary": "ARCHITECTURE + USER_GUIDE",
+        "fileAnchors": []
+      }
+    },
+    {
+      "id": "p10.4",
+      "type": "text",
+      "x": -580,
+      "y": 1572,
+      "width": 220,
+      "height": 56,
+      "color": "5",
+      "text": "### Demo explore monorepo",
+      "semantic": {
+        "kind": "location",
+        "summary": "Demo explore monorepo",
+        "fileAnchors": []
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-p-root-p1",
+      "fromNode": "p-root",
+      "toNode": "p1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p1-p1.1",
+      "fromNode": "p1",
+      "toNode": "p1.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p1-p1.2",
+      "fromNode": "p1",
+      "toNode": "p1.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p1-p1.3",
+      "fromNode": "p1",
+      "toNode": "p1.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p1-p1.4",
+      "fromNode": "p1",
+      "toNode": "p1.4",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p2",
+      "fromNode": "p-root",
+      "toNode": "p2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p2-p2.1",
+      "fromNode": "p2",
+      "toNode": "p2.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p2-p2.2",
+      "fromNode": "p2",
+      "toNode": "p2.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p2-p2.3",
+      "fromNode": "p2",
+      "toNode": "p2.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p3",
+      "fromNode": "p-root",
+      "toNode": "p3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p3-p3.1",
+      "fromNode": "p3",
+      "toNode": "p3.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p3-p3.2",
+      "fromNode": "p3",
+      "toNode": "p3.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p3-p3.3",
+      "fromNode": "p3",
+      "toNode": "p3.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p3-p3.4",
+      "fromNode": "p3",
+      "toNode": "p3.4",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p4",
+      "fromNode": "p-root",
+      "toNode": "p4",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p4-p4.1",
+      "fromNode": "p4",
+      "toNode": "p4.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p4-p4.2",
+      "fromNode": "p4",
+      "toNode": "p4.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p4-p4.3",
+      "fromNode": "p4",
+      "toNode": "p4.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p4-p4.4",
+      "fromNode": "p4",
+      "toNode": "p4.4",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p5",
+      "fromNode": "p-root",
+      "toNode": "p5",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p5-p5.1",
+      "fromNode": "p5",
+      "toNode": "p5.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p5-p5.2",
+      "fromNode": "p5",
+      "toNode": "p5.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p5-p5.3",
+      "fromNode": "p5",
+      "toNode": "p5.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p6",
+      "fromNode": "p-root",
+      "toNode": "p6",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p6-p6.1",
+      "fromNode": "p6",
+      "toNode": "p6.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p6-p6.2",
+      "fromNode": "p6",
+      "toNode": "p6.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p6-p6.3",
+      "fromNode": "p6",
+      "toNode": "p6.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p7",
+      "fromNode": "p-root",
+      "toNode": "p7",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p7-p7.1",
+      "fromNode": "p7",
+      "toNode": "p7.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p7-p7.2",
+      "fromNode": "p7",
+      "toNode": "p7.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p7-p7.3",
+      "fromNode": "p7",
+      "toNode": "p7.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p7-p7.4",
+      "fromNode": "p7",
+      "toNode": "p7.4",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p8",
+      "fromNode": "p-root",
+      "toNode": "p8",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p8-p8.1",
+      "fromNode": "p8",
+      "toNode": "p8.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p8-p8.2",
+      "fromNode": "p8",
+      "toNode": "p8.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p8-p8.3",
+      "fromNode": "p8",
+      "toNode": "p8.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p9",
+      "fromNode": "p-root",
+      "toNode": "p9",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p9-p9.1",
+      "fromNode": "p9",
+      "toNode": "p9.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p9-p9.2",
+      "fromNode": "p9",
+      "toNode": "p9.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p9-p9.3",
+      "fromNode": "p9",
+      "toNode": "p9.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p9-p9.4",
+      "fromNode": "p9",
+      "toNode": "p9.4",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p-root-p10",
+      "fromNode": "p-root",
+      "toNode": "p10",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p10-p10.1",
+      "fromNode": "p10",
+      "toNode": "p10.1",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p10-p10.2",
+      "fromNode": "p10",
+      "toNode": "p10.2",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p10-p10.3",
+      "fromNode": "p10",
+      "toNode": "p10.3",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    },
+    {
+      "id": "e-p10-p10.4",
+      "fromNode": "p10",
+      "toNode": "p10.4",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "kind": "semantic"
+    }
+  ]
+}

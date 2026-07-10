@@ -20,3 +20,12 @@ export { SYSTEM_CODEMAP, EXAMPLE_CODEMAP_MINI, buildCodemapUserPrompt, projectCo
 
 export { enrichCodemap, redactSamples, applyPrivacyToPack } from './enrichCodemap';
 export type { EnrichInput, EnrichResult } from './enrichCodemap';
+
+export {
+  setPromptLogDir,
+  getPromptLogDir,
+  isPromptLogEnabled,
+  beginPromptLog,
+  withPromptLogging,
+  sanitizePromptText,
+} from './promptLog';

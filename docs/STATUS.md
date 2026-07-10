@@ -261,3 +261,17 @@
 
 **Core phases 1–10 closed for research prototype.**  
 Still open: **9.5** optional UX, real **e2e**, deeper docs, signed installers.
+
+### Semantic Map Fix (post-Phase 10) ✅
+
+| Проблема | Исправление |
+|----------|-------------|
+| LLM генерировал сырой CanvasDocument (coords, edges) | Переключено на `SYSTEM_CODEMAP` → LLM отдаёт только области + fileAnchors |
+| Рёбра sequential 1→2→3 | `projectCodemapToCanvas` использует **реальный DepGraph** (import edges между anchor-sets) |
+| Root отсутствовал | Добавлен root-узел с overview |
+| Layout от модели | Детерминированная сетка 3 колонки, root сверху |
+| Fallback хрупкий | try LLM → Mock → minimal codemap из samples |
+
+### Проверка (человек)
+- Инструкция: [`docs/VERIFY.md`](VERIFY.md)
+- Деревья plan vs result: toolbar **Plan|Result** · `docs/plan_vs_result.canvas` · отдельно `plan_tree.canvas` / `result_tree.canvas`

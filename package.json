@@ -9,6 +9,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:live-llm": "tsx packages/semantic/scripts/live-haiku-smoke.ts",
+    "test:llm-curl": "bash scripts/llm-curl-smoke.sh",
     "dist:linux": "pnpm --filter @infinity-canvas/desktop dist:linux",
     "dist:mac": "pnpm --filter @infinity-canvas/desktop dist:mac",
     "dist:win": "pnpm --filter @infinity-canvas/desktop dist:win",

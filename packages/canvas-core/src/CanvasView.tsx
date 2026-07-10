@@ -2,8 +2,6 @@ import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react
 import { CanvasState } from './CanvasState';
 import { CanvasRenderer } from './CanvasRenderer';
 import { InputHandler } from './InputHandler';
-import { DEMO_CANVAS_JSON } from './demoCanvas';
-
 export interface CanvasViewHandle {
   state: CanvasState;
   loadData: (json: string) => void;
@@ -43,13 +41,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
           console.warn('[CanvasView] failed to parse canvas JSON', err);
           return;
         }
-      } else if (state.nodes.length === 0) {
-        // Load demo canvas as default
-        try {
-          const demo = JSON.parse(DEMO_CANVAS_JSON);
-          state.loadCanvasData(demo);
-        } catch { /* ignore, will be empty */ }
       }
+      // No auto-demo stub: empty canvas until Open Folder / Demo / Plan|Result
 
       if (canvas) {
         renderer.resize();
@@ -82,7 +75,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(
       input.setRenderCallback(() => renderer.render(state));
       inputRef.current = input;
 
-      // First paint: initialData if already present, else demo
+      // First paint: only if parent already has map JSON (no demo stub)
       applyDocument(initialData, Boolean(initialData));
 
       const handleResize = () => {

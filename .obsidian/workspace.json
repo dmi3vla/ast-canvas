@@ -13,15 +13,15 @@
             "state": {
               "type": "canvas",
               "state": {
-                "file": "infinity_canvas_research.canvas",
+                "file": "docs/plan_vs_result.canvas",
                 "viewState": {
-                  "x": 2004.8469301796588,
-                  "y": 671.0026974068393,
-                  "zoom": -0.6000000000000009
+                  "x": -92.36231884057972,
+                  "y": 1141.7501612318845,
+                  "zoom": -1
                 }
               },
               "icon": "lucide-layout-dashboard",
-              "title": "infinity_canvas_research"
+              "title": "plan_vs_result"
             }
           }
         ]
@@ -188,17 +188,22 @@
   },
   "active": "b8fc461c94451142",
   "lastOpenFiles": [
-    "packages/semantic/tests/enrichCodemap.test.ts",
-    "packages/semantic/src/enrichCodemap.ts",
-    "apps/desktop/out/preload/index.js",
-    "apps/desktop/out/preload",
+    "packages/semantic/tests/promptLog.test.ts",
+    "packages/semantic/src/promptLog.ts",
+    "scripts/func-pipeline-test.ts",
     "apps/desktop/out/main/index.js",
-    "apps/desktop/out/main",
-    "apps/desktop/out",
-    "apps/desktop/electron.vite.config.1783544997826.mjs",
-    "apps/desktop/package.json.1808545693",
-    "apps/desktop/node_modules/@electron-toolkit",
-    "pnpm-lock.yaml.672475039",
+    "apps/desktop/out/main/chunks/index-DFPiWNOy.js",
+    "apps/desktop/out/main/chunks",
+    "apps/desktop/electron.vite.config.1783638995146.mjs",
+    "scripts/llm-curl-smoke.sh",
+    "scripts",
+    "apps/desktop/src/main/loadEnv.ts",
+    "apps/desktop/electron.vite.config.1783638010808.mjs",
+    "docs/result_tree.canvas",
+    "infinity_canvas_research.canvas",
+    "docs/VERIFY.md",
+    "docs/plan_tree.canvas",
+    "docs/plan_vs_result.canvas",
     "fixtures/mini-project/README.md",
     "README.md",
     "revu.md",

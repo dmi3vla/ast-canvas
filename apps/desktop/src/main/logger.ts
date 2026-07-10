@@ -1,6 +1,7 @@
 import { join } from 'path';
 import { appendFile, mkdir, stat, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
+import { setPromptLogDir } from '@infinity-canvas/semantic';
 
 const MAX_LOG_BYTES = 1_000_000; // 1 MB before truncate
 
@@ -13,6 +14,8 @@ export function setLogWorkspace(workspaceRoot: string): void {
   logPath = join(workspaceRoot, '.infinity-canvas', 'logs', 'app.log');
   logSize = 0;
   sizeKnown = false;
+  // Full LLM prompt dumps (in/out) for debugging
+  setPromptLogDir(join(workspaceRoot, '.infinity-canvas', 'logs', 'prompts'));
 }
 
 async function ensureSize(): Promise<void> {

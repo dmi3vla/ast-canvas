@@ -98,22 +98,43 @@ export function buildCodemapUserPrompt(pack: ContextPack, projectName: string): 
 
 // ── Codemap → Canvas Projection ────────────────────────
 
-import type { Codemap } from '@infinity-canvas/schema';
-import type { CanvasDocument, ICNode, ICEdge } from '@infinity-canvas/schema';
+import type { Codemap, CanvasDocument, ICNode, ICEdge, DepGraph } from '@infinity-canvas/schema';
 
-export function projectCodemapToCanvas(codemap: Codemap): CanvasDocument {
+/** Project a codemap to canvas using optional DepGraph for realistic edges and deterministic layout. */
+export function projectCodemapToCanvas(
+  codemap: Codemap,
+  depGraph?: DepGraph | null,
+): CanvasDocument {
   const nodes: ICNode[] = [];
   const edges: ICEdge[] = [];
 
   const COLS = 3;
   const SPACING_X = 340;
-  const SPACING_Y = 160;
+  const SPACING_Y = 180;
+  const W = 300;
+  const H = 110;
+
+  // Root node (project overview)
+  nodes.push({
+    id: 'root',
+    type: 'semantic',
+    x: -400,
+    y: -100,
+    width: W,
+    height: H,
+    text: `## ${codemap.title || 'Architecture'}`,
+    semantic: {
+      kind: 'overview',
+      summary: codemap.description || 'Project architecture overview',
+      traceIds: [],
+      fileAnchors: [],
+    },
+  } as ICNode);
 
   // One canvas node per trace (area node)
   codemap.traces.forEach((trace, i) => {
     const col = i % COLS;
     const row = Math.floor(i / COLS);
-
     const locationPaths = [...new Set(trace.locations.map(l => l.path))];
 
     nodes.push({
@@ -121,26 +142,72 @@ export function projectCodemapToCanvas(codemap: Codemap): CanvasDocument {
       type: 'semantic',
       x: -400 + col * SPACING_X,
       y: 60 + row * SPACING_Y,
-      width: 300,
-      height: 100,
-      text: `### ${trace.title}\n${trace.description}`,
+      width: W,
+      height: H,
+      text: `### ${trace.title}\n${trace.description || ''}`,
       semantic: {
         kind: 'area',
-        summary: trace.description,
+        summary: trace.description || trace.title,
         traceIds: [trace.id],
         fileAnchors: locationPaths,
       },
     } as ICNode);
   });
 
-  // Sequential edges between traces
-  for (let i = 1; i < nodes.length; i++) {
-    edges.push({
-      id: `proj-e${i}`,
-      fromNode: nodes[i - 1].id,
-      toNode: nodes[i].id,
-      kind: 'semantic',
+  // Edges: if DepGraph available, link areas by real import relationships
+  if (depGraph && depGraph.nodes && depGraph.edges) {
+    const areaAnchors = new Map<string, Set<number>>(); // path → set of trace indices
+    codemap.traces.forEach((trace, i) => {
+      for (const loc of trace.locations) {
+        const p = loc.path.replace(/\\/g, '/');
+        if (!areaAnchors.has(p)) areaAnchors.set(p, new Set());
+        areaAnchors.get(p)!.add(i);
+      }
     });
+
+    const areaPairs = new Set<string>(); // "1→2"
+
+    for (const e of depGraph.edges) {
+      const fromAreas = areaAnchors.get(e.from.replace(/\\/g, '/'));
+      const toAreas = areaAnchors.get(e.to.replace(/\\/g, '/'));
+      if (!fromAreas || !toAreas) continue;
+
+      for (const fi of fromAreas) {
+        for (const ti of toAreas) {
+          if (fi === ti) continue; // skip self
+          const key = `${fi}→${ti}`;
+          if (!areaPairs.has(key)) {
+            areaPairs.add(key);
+            edges.push({
+              id: `proj-e-${fi}-${ti}`,
+              fromNode: String(fi + 1), // trace ids are 1-indexed numeric strings
+              toNode: String(ti + 1),
+              kind: 'import',
+            });
+          }
+        }
+      }
+    }
+
+    // Connect root to all area nodes that exist
+    for (let i = 0; i < codemap.traces.length; i++) {
+      edges.push({
+        id: `proj-root-${i}`,
+        fromNode: 'root',
+        toNode: codemap.traces[i].id,
+        kind: 'derives',
+      });
+    }
+  } else {
+    // Fallback: root → all areas, no other edges
+    for (const trace of codemap.traces) {
+      edges.push({
+        id: `proj-root-${trace.id}`,
+        fromNode: 'root',
+        toNode: trace.id,
+        kind: 'derives',
+      });
+    }
   }
 
   return { nodes, edges };

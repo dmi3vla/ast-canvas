@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { RightMode } from '@infinity-canvas/detail-pane';
 import type { CanvasViewHandle, ICNode } from '@infinity-canvas/canvas-core';
-import { DEMO_CANVAS_JSON } from '@infinity-canvas/canvas-core';
+import { DEMO_CANVAS_JSON, PLAN_VS_RESULT_CANVAS_JSON } from '@infinity-canvas/canvas-core';
 import { Toolbar } from './components/Toolbar';
 import { LeftPane } from './components/LeftPane';
 import { Splitter } from './components/Splitter';
@@ -45,14 +45,19 @@ export function App() {
 
   const canvasRef = useRef<CanvasViewHandle>(null);
   const [canvasData, setCanvasData] = useState<string | null>(null);
+  /** Bumps when user loads Demo / Plan|Result so a late auto buildMap cannot clobber them. */
+  const mapGenRef = useRef(0);
 
   // Build semantic map for a workspace path
   const buildMap = useCallback(async (workspacePath: string, force = false) => {
     if (!window.electronAPI) return;
+    const gen = ++mapGenRef.current;
     setState(s => ({ ...s, isLoading: true }));
 
     try {
       const result = await window.electronAPI.buildSemanticMap(workspacePath, { force });
+      if (gen !== mapGenRef.current) return; // superseded by Demo / Plan|Result / newer map
+
       if (result.error) {
         console.error('Semantic map error:', result.error);
         setState(s => ({ ...s, isLoading: false }));
@@ -63,6 +68,7 @@ export function App() {
         setCanvasData(result.json);
         // Also push into canvas handle (covers race if effect already ran)
         queueMicrotask(() => {
+          if (gen !== mapGenRef.current) return;
           canvasRef.current?.loadData(result.json!);
         });
       }
@@ -82,11 +88,13 @@ export function App() {
       }));
     } catch (err) {
       console.error('Build map failed:', err);
-      setState(s => ({ ...s, isLoading: false }));
+      if (gen === mapGenRef.current) {
+        setState(s => ({ ...s, isLoading: false }));
+      }
     }
   }, []);
 
-  // Load persisted ratio + auto-load last workspace
+  // Load persisted ratio + auto-load last workspace (no demo stub flash)
   useEffect(() => {
     const loadPersisted = async () => {
       try {
@@ -236,12 +244,35 @@ export function App() {
   }, [state.workspacePath, buildMap]);
 
   const handleLoadDemo = useCallback(() => {
+    mapGenRef.current += 1; // invalidate in-flight auto buildMap
     setCanvasData(DEMO_CANVAS_JSON);
     setState(s => ({
       ...s,
       // Keep workspace if already open — Source/deps still resolve
       mapNodeCount: 21,
       fromCache: false,
+      isLoading: false,
+      selectedNodeId: null,
+      selectedNode: null,
+      rightMode: 'empty',
+      source: undefined,
+      navStack: [],
+    }));
+  }, []);
+
+  /** Load side-by-side PLAN vs RESULT trees (docs/plan_vs_result.canvas) */
+  const handleLoadPlanVsResult = useCallback(() => {
+    mapGenRef.current += 1; // invalidate in-flight auto buildMap
+    setCanvasData(PLAN_VS_RESULT_CANVAS_JSON);
+    let n = 0;
+    try {
+      n = JSON.parse(PLAN_VS_RESULT_CANVAS_JSON).nodes?.length ?? 0;
+    } catch { /* ignore */ }
+    setState(s => ({
+      ...s,
+      mapNodeCount: n,
+      fromCache: false,
+      isLoading: false,
       selectedNodeId: null,
       selectedNode: null,
       rightMode: 'empty',
@@ -317,6 +348,7 @@ export function App() {
         onOpenFolder={handleOpenFolder}
         onRegenerate={handleRegenerate}
         onLoadDemo={handleLoadDemo}
+        onLoadPlanVsResult={handleLoadPlanVsResult}
         onExport={handleExport}
         onImport={handleImport}
         onImportLanggraph={handleImportLanggraph}

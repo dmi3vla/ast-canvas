@@ -1,1194 +1,150 @@
 {
-  "nodes": [
-    {
-      "id": "title",
-      "type": "text",
-      "text": "# Infinity Canvas · Electron Split App\n**LEFT: Infinity Canvas · RIGHT: Detail (empty | node | codemap | source)**\n\nБаза: `luisfernando.infinite-canvas-0.1.5` → standalone Electron.\nСемантика: `langgraph.codemap`. AST: `alex-c` + `source/`.\n\n**UX-инвариант (корректировка):**\nодно окно, split: слева карта всегда; справа панель по selection.\nНе заменять canvas drill-down'ом.\n\nПлан агента: `AGENT_PLAN.md`",
-      "x": -200,
-      "y": -680,
-      "width": 440,
-      "height": 280,
-      "color": "1"
-    },
-    {
-      "id": "north_star",
-      "type": "text",
-      "text": "## 🎯 North Star\n\n1. Electron app, **не** VS Code extension.\n2. Open workspace → LLM → semantic `.canvas` на **LEFT**.\n3. **RIGHT** пустой, пока нет selection.\n4. Click node → RIGHT = content узла.\n5. Codemap action → RIGHT = deps (in) + derives (out) + locations.\n6. Location → RIGHT = source (monaco). LEFT не unmount.\n\n**DoD:** open → map LEFT ≤30s cache → click → RIGHT content/codemap → jump source.",
-      "x": 280,
-      "y": -520,
-      "width": 400,
-      "height": 280,
-      "color": "5"
-    },
-    {
-      "id": "sources",
-      "type": "text",
-      "text": "## 📦 Источники (read-only research)\n\n| Path | Роль |\n|------|------|\n| `luisfernando.infinite-canvas-0.1.5/` | Canvas UI, .canvas format, AI bridge |\n| `langgraph.codemap` | Схема semantic traces |\n| `alex-c.code-canvas-app-0.14.8/` | AST deps, xyflow, ast-grep |\n| `source/deobfuscated.js` + `source/*.js` | Webview modules code-canvas |\n| `cremniy_canvas.canvas` | Формат roadmap-промптов |\n\n**Правило:** не править vendor; только extract → own code.",
-      "x": 740,
-      "y": -520,
-      "width": 360,
-      "height": 260,
-      "color": "6"
-    },
-    {
-      "id": "phase1",
-      "type": "text",
-      "text": "## 🔍 Фаза 1 — Reverse Engineering источников",
-      "x": -900,
-      "y": -160,
-      "width": 340,
-      "height": 60,
-      "color": "3"
-    },
-    {
-      "id": "1_1",
-      "type": "text",
-      "text": "### 1.1 Infinite Canvas architecture\n\nРазобрать extension host + webview.\n\n**Файлы:**\n- `luisfernando.../out/extension.js`\n- `webview/main.js`\n- `webview/src/InfiniteCanvasSimple.js`\n- `AIManager.js`, `aiService.js`\n\n**Артефакт:** `docs/research/01-infinite-canvas.md`\n— message protocol, .canvas I/O, pan/zoom, AI hooks.\n\n**Промт агенту:**\n```\nИсследуй luisfernando.infinite-canvas-0.1.5.\nСоставь карту: activation, CanvasEditorProvider,\nwebview messaging (loadContent/save/loadFile),\nформат nodes/edges Obsidian-совместимый,\nкак AIManager генерит текст узлов.\nНе меняй код. Только markdown-отчёт +\nдиаграмма data flow Extension↔Webview↔.canvas.\n```",
-      "x": -1180,
-      "y": -60,
-      "width": 300,
-      "height": 380,
-      "color": "3"
-    },
-    {
-      "id": "1_2",
-      "type": "text",
-      "text": "### 1.2 Codemap schema (langgraph)\n\nФормализовать semantic graph schema.\n\n**Файл:** `langgraph.codemap`\n\nПоля: schemaVersion, traces[], locations[],\ntraceTextDiagram, mermaidDiagram, metadata.\n\n**Артефакт:** `docs/research/02-codemap-schema.md`\n+ TypeScript types `packages/schema/codemap.ts`\n\n**Промт агенту:**\n```\nПрочитай langgraph.codemap целиком.\nВыдели JSON-schema: root, Trace, Location,\nобязательные/опциональные поля, id-стратегии.\nОпиши mapping Trace→canvas node,\nLocation→drill-down card, edges между traces\nпо общим path/import.\nВыдай Zod-схему + пример минимального codemap\nна 2 traces. Код vendor не трогать.\n```",
-      "x": -860,
-      "y": -60,
-      "width": 300,
-      "height": 380,
-      "color": "3"
-    },
-    {
-      "id": "1_3",
-      "type": "text",
-      "text": "### 1.3 Code Canvas + deobfuscated\n\nИзвлечь AST/deps/layout паттерны.\n\n**Файлы:**\n- package.json (ast-grep, @xyflow/react, zustand)\n- source/deobfuscated.js + source/*.js\n- dist/extension.js (host commands)\n\n**Артефакт:** `docs/research/03-code-canvas-extract.md`\n— file graph, token refs, layout, ignore rules.\n\n**Промт агенту:**\n```\nИсследуй alex-c.code-canvas-app-0.14.8 и source/.\nНайди: как строится file/import graph,\nкак token references/deps edges,\nlayout algorithm hints, ignore patterns,\nwebview postMessage API (если видно).\nСписок capability checklist:\n[ ] folder tree [ ] open file on canvas\n[ ] deps edges [ ] token refs [ ] live watch.\nСсылки на module ids в source/*.js.\nБез reimplementation — только карта.\n```",
-      "x": -540,
-      "y": -60,
-      "width": 300,
-      "height": 380,
-      "color": "3"
-    },
-    {
-      "id": "1_4",
-      "type": "text",
-      "text": "### 1.4 Gap matrix & decisions\n\nСвести 3 источника → target architecture.\n\n**Артефакт:** `docs/research/04-gap-matrix.md`\n\n| Capability | infinite | codemap | code-canvas | Ours |\n| Canvas pan/zoom | ✅ | — | ✅ | own |\n| LLM semantic map | partial AI | ✅ schema | — | core |\n| AST deps | — | locations | ✅ | core |\n| Drill-down | — | traces | open file | core |\n\n**Промт:**\n```\nПо docs/research/01-03 составь gap-matrix\nи ADR: (1) Electron vs VS Code extension first,\n(2) canvas renderer: canvas2d vs xyflow/react,\n(3) LLM provider interface, (4) local AST engine.\nРекомендация + risks. Max 2 страницы.\n```",
-      "x": -220,
-      "y": -60,
-      "width": 300,
-      "height": 380,
-      "color": "3"
-    },
-    {
-      "id": "phase2",
-      "type": "text",
-      "text": "## 🧱 Фаза 2 — Electron + Split shell",
-      "x": -900,
-      "y": 420,
-      "width": 360,
-      "height": 60,
-      "color": "4"
-    },
-    {
-      "id": "2_1",
-      "type": "text",
-      "text": "### 2.1 Repo skeleton\n\n```\napps/desktop/\npackages/canvas-core/   # LEFT\npackages/detail-pane/   # RIGHT\npackages/schema|semantic|ast-graph|ipc|session\n```\n\n**Промт:** monorepo pnpm, electron-vite React TS,\npackages exports, README scripts. Vendor не копировать.\nСм. AGENT_PLAN.md §2.1",
-      "x": -1180,
-      "y": 520,
-      "width": 300,
-      "height": 280,
-      "color": "4"
-    },
-    {
-      "id": "2_2",
-      "type": "text",
-      "text": "### 2.2 Main + preload\n\nBrowserWindow, Open Folder, secure preload IPC.\nRenderer: workspace path + file count.\n\n**Промт:** см. AGENT_PLAN.md §2.2",
-      "x": -860,
-      "y": 520,
-      "width": 300,
-      "height": 220,
-      "color": "4"
-    },
-    {
-      "id": "2_3",
-      "type": "text",
-      "text": "### 2.3 ⭐ AppShell split LEFT|RIGHT\n\n**Критический UX-этап.**\n\n```\n[Toolbar]\n[LeftPane | Splitter | RightPane]\nrightMode: empty|content|codemap|source\n```\n\nLEFT placeholder → later canvas.\nRIGHT: empty hint · mock content · mock codemap.\nSplitter + persist leftRatio.\nEsc → empty. LEFT never navigates away.\n\n**Промт:** AGENT_PLAN.md §2.3\n**DoD:** mock click → RIGHT fills; LEFT stable.",
-      "x": -540,
-      "y": 520,
-      "width": 300,
-      "height": 380,
-      "color": "4"
-    },
-    {
-      "id": "2_4",
-      "type": "text",
-      "text": "### 2.4 Port canvas → LEFT + indexer\n\nPort InfiniteCanvasSimple → canvas-core in LeftPane.\nClick node → onSelect → RIGHT content.\n+ WorkspaceIndexer (ignore globs).\n\n**Промт:** AGENT_PLAN §2.4 + §2.5\nRoundtrip .canvas tests.",
-      "x": -220,
-      "y": 520,
-      "width": 300,
-      "height": 300,
-      "color": "4"
-    },
-    {
-      "id": "phase3",
-      "type": "text",
-      "text": "## 📐 Фаза 3 — Unified data model",
-      "x": -900,
-      "y": 960,
-      "width": 320,
-      "height": 60,
-      "color": "6"
-    },
-    {
-      "id": "3_1",
-      "type": "text",
-      "text": "### 3.1 Canvas document model\n\nObsidian-compatible + extensions:\n\n```ts\ntype ICNode = {\n  id, type: 'text'|'file'|'semantic'|'group',\n  x,y,width,height, color?,\n  text?, file?,\n  // extensions:\n  semantic?: { kind, summary, traceIds[] },\n  graph?: { path, symbol?, role: 'module'|'fn'|'class' }\n}\ntype ICEdge = {\n  id, fromNode, toNode, fromSide?, toSide?,\n  kind?: 'semantic'|'import'|'call'|'inherit'|'derives',\n  label?\n}\n```\n\n**Промт:**\n```\npackages/schema: Zod + TS types для\nCanvasDocument (Obsidian + IC extensions),\nвалидатор, migrateLegacy().\nТесты: cremniy_canvas.canvas парсится;\nрасширенные поля roundtrip; strip unknown OK.\n```",
-      "x": -1180,
-      "y": 1060,
-      "width": 300,
-      "height": 380,
-      "color": "6"
-    },
-    {
-      "id": "3_2",
-      "type": "text",
-      "text": "### 3.2 Codemap model\n\n1:1 с langgraph.codemap + normalizer.\n\n```ts\nCodemap {\n  schemaVersion, id, stableId, title,\n  metadata, traces: Trace[],\n  description?, mermaidDiagram?\n}\nTrace { id, title, description,\n  locations: Location[],\n  traceTextDiagram?, traceGuide? }\nLocation { id, path, lineNumber,\n  lineContent?, title?, description? }\n```\n\n**Промт:**\n```\npackages/schema/codemap.ts из langgraph.codemap.\nparseCodemap(), validate(), toCanvasProjection()\n(traces→nodes, heuristic edges).\nGolden test: load langgraph.codemap →\nN nodes == traces.length.\n```",
-      "x": -860,
-      "y": 1060,
-      "width": 300,
-      "height": 360,
-      "color": "6"
-    },
-    {
-      "id": "3_3",
-      "type": "text",
-      "text": "### 3.3 Dependency graph model\n\n```ts\nDepGraph {\n  nodes: Map<path|symbolId, DepNode>\n  edges: DepEdge[] // import|call|type|export\n}\nDepNode { id, path, name, kind, exports[] }\nDepEdge { from, to, kind, loc? }\n// derived:\nincoming(id), outgoing(id), subgraph(id, depth)\n```\n\n**Промт:**\n```\npackages/schema/dep-graph.ts + pure helpers:\nincoming, outgoing, egoNetwork(center, depth),\ntopologicalLayers (DAG only).\nФикстура 5 файлов A→B→C. Тесты helpers.\n```",
-      "x": -540,
-      "y": 1060,
-      "width": 300,
-      "height": 340,
-      "color": "6"
-    },
-    {
-      "id": "3_4",
-      "type": "text",
-      "text": "### 3.4 Session state (incl. split UI)\n\n```ts\nui: {\n  selectedNodeId,\n  rightMode: 'empty'|'content'|'codemap'|'source',\n  leftRatio,\n  source?: { path, line }\n}\n```\n\nCache `.infinity-canvas/`. IPC session:get/patch.\n\n**Промт:** AGENT_PLAN §3.4",
-      "x": -220,
-      "y": 1060,
-      "width": 300,
-      "height": 320,
-      "color": "6"
-    },
-    {
-      "id": "phase4",
-      "type": "text",
-      "text": "## 🤖 Фаза 4 — LLM Semantic Map (on project open)",
-      "x": 200,
-      "y": -160,
-      "width": 380,
-      "height": 60,
-      "color": "5"
-    },
-    {
-      "id": "4_1",
-      "type": "text",
-      "text": "### 4.1 Context packer\n\nСобрать prompt context без отправки всего repo:\n- tree (depth-limited)\n- package.json / README / entrypoints\n- top-N files by centrality (import degree later)\n- budgets: tokens / max files\n\n**Промт:**\n```\npackages/semantic/contextPacker.ts:\ninput FileMeta[] + optional DepGraph skeleton,\noutput ContextPack { tree, manifests, samples[] }\nс hard budget (e.g. 80k chars).\nПриоритет: README, package.json, src/index*,\nmain modules. Тест на fixtures/mini-project.\n```",
-      "x": 80,
-      "y": -60,
-      "width": 300,
-      "height": 320,
-      "color": "5"
-    },
-    {
-      "id": "4_2",
-      "type": "text",
-      "text": "### 4.2 LLM provider interface\n\n```ts\ninterface LLMProvider {\n  complete(req: {\n    system, user, jsonSchema?\n  }): Promise<string>\n}\n// OpenRouter | OpenAI | Ollama | Mock\n```\nConfig: API key в secure store Electron.\n\n**Промт:**\n```\npackages/semantic/providers/*\nLLMProvider interface + MockProvider\n(deterministic JSON map) + OpenRouterProvider.\nEnv: INFINITY_LLM_API_KEY, model name.\nRetry/timeout. Не логировать secrets.\n```",
-      "x": 400,
-      "y": -60,
-      "width": 300,
-      "height": 300,
-      "color": "5"
-    },
-    {
-      "id": "4_3",
-      "type": "text",
-      "text": "### 4.3 Semantic map prompt + parser\n\nSystem prompt: вернуть JSON CanvasDocument\n(semantic nodes) в духе langgraph traces:\n- 5–20 nodes (modules/concepts)\n- edges kind=semantic\n- summary 1–3 sentences\n- optional file anchors[]\n\nValidate Zod → fallback layout.\n\n**Промт:**\n```\nРеализуй buildSemanticMap(pack, llm):\n1) system+user prompt templates\n2) parse JSON (fence-strip)\n3) validate CanvasDocument\n4) assign x,y grid if missing\n5) return map + diagnostics\nGolden: MockProvider → valid canvas\ncompatible with infinite-canvas loader.\nPrompt must mirror codemap philosophy:\nnodes = structural invariants / subsystems.\n```",
-      "x": 720,
-      "y": -60,
-      "width": 300,
-      "height": 360,
-      "color": "5"
-    },
-    {
-      "id": "4_4",
-      "type": "text",
-      "text": "### 4.4 Orchestrate → LEFT map, RIGHT empty\n\nonWorkspaceOpen → semantic map → **LEFT only**.\nRIGHT remains empty until selection.\nProgress + cancel + cache.\n\n**Промт:** AGENT_PLAN §4.4",
-      "x": 1040,
-      "y": -60,
-      "width": 300,
-      "height": 280,
-      "color": "5"
-    },
-    {
-      "id": "4_5",
-      "type": "text",
-      "text": "### 4.5 Incremental refresh\n\nКнопки: Regenerate Map / Update delta.\nDelta: only changed files summaries → LLM merge.\n\n**Промт:**\n```\nДобавь semanticMap:regenerate и :patch.\nPatch mode: diff file list vs previous cacheKey,\nLLM merge instruction preserve stable node ids\nwhere possible. Тест Mock merge keeps id=auth.\n```",
-      "x": 1360,
-      "y": -60,
-      "width": 280,
-      "height": 260,
-      "color": "5"
-    },
-    {
-      "id": "phase5",
-      "type": "text",
-      "text": "## 🎨 Фаза 5 — LEFT map UX + RIGHT content",
-      "x": 200,
-      "y": 420,
-      "width": 340,
-      "height": 60,
-      "color": "1"
-    },
-    {
-      "id": "5_1",
-      "type": "text",
-      "text": "### 5.1 Semantic node chrome\n\nВизуал узла:\n- title + kind badge (module/layer/flow)\n- 2-line summary\n- counters: files · deps\n- color by layer\n\n**Промт:**\n```\nВ canvas-core renderer: SemanticNodeView.\nДанные из node.semantic. Hover outline,\nselected glow. Не ломать text/file nodes\nиз Obsidian format.\n```",
-      "x": 80,
-      "y": 520,
-      "width": 280,
-      "height": 280,
-      "color": "1"
-    },
-    {
-      "id": "5_2",
-      "type": "text",
-      "text": "### 5.2 Semantic edges & layout\n\nkind=semantic: dashed/colored.\nAuto-layout: hierarchical (sugiyama-lite)\nили force-directed fallback.\nFit-to-view after load.\n\n**Промт:**\n```\npackages/canvas-core/layout:\nhierarchicalLayout(nodes, edges) + fitView.\nApply after semantic map load.\nEdges: stroke by kind; label optional.\nTest: no overlapping centers on 10-node chain.\n```",
-      "x": 380,
-      "y": 520,
-      "width": 280,
-      "height": 280,
-      "color": "1"
-    },
-    {
-      "id": "5_3",
-      "type": "text",
-      "text": "### 5.3 Click → RIGHT content (not replace LEFT)\n\nSingle click:\n  selectedNodeId + rightMode='content'\nRIGHT ContentView: title, summary, files[],\n  [Codemap] [files]\ntext node → show text; file node → preview.\n\nEsc → rightMode='empty'\n**LEFT stays mounted.**\n\n**Промт:** AGENT_PLAN §5.3",
-      "x": 680,
-      "y": 520,
-      "width": 280,
-      "height": 320,
-      "color": "1"
-    },
-    {
-      "id": "5_4",
-      "type": "text",
-      "text": "### 5.4 Toolbar & empty/error states\n\nToolbar: Open Folder · Regenerate ·\nZoom fit · Toggle minimap.\nErrors: LLM fail → Mock/offline map + toast.\n\n**Промт:**\n```\nUI shell: toolbar, status bar (workspace,\nmap age, node count), error banner with Retry.\nOffline: load last cache or skeleton map\nfrom folder tree only (no LLM).\n```",
-      "x": 980,
-      "y": 520,
-      "width": 280,
-      "height": 280,
-      "color": "1"
-    },
-    {
-      "id": "phase6",
-      "type": "text",
-      "text": "## 🧬 Фаза 6 — AST / Dependency engine",
-      "x": 200,
-      "y": 900,
-      "width": 360,
-      "height": 60,
-      "color": "2"
-    },
-    {
-      "id": "6_1",
-      "type": "text",
-      "text": "### 6.1 Language adapters\n\nMVP languages: TS/JS first (import/export).\nLater: Python, Go via ast-grep langs.\n\n```ts\ninterface LangAdapter {\n  extensions: string[]\n  extract(file, src): { imports, exports, symbols }\n}\n```\n\n**Промт:**\n```\npackages/ast-graph/adapters/ts-js.ts:\nparse imports/exports (typescript compiler API\nили lightweight regex+acorn — выбрать и ADR).\nFixture multi-file project. Snapshot extract().\nНе тащить весь @ast-grep пока не нужно.\n```",
-      "x": 80,
-      "y": 1000,
-      "width": 300,
-      "height": 340,
-      "color": "2"
-    },
-    {
-      "id": "6_2",
-      "type": "text",
-      "text": "### 6.2 Build DepGraph\n\nResolve relative/absolute imports → edges.\nHandle index files, package.json exports\nbest-effort.\n\n**Промт:**\n```\nbuildDepGraph(root, files, adapters):\nDepGraph. Resolve paths, skip externals\n(node_modules) as external nodes optional.\nAPI: getEgo(path, depth=1|2).\nTest chain A imports B imports C.\n```",
-      "x": 400,
-      "y": 1000,
-      "width": 300,
-      "height": 300,
-      "color": "2"
-    },
-    {
-      "id": "6_3",
-      "type": "text",
-      "text": "### 6.3 Symbol-level edges (optional MVP+)\n\ncall/type references inside module\n(вдохновение code-canvas token refs).\n\n**Промт:**\n```\nSpike: для одного TS файла извлечь\nfunction calls to local imports.\nЕсли >2 дня — mark backlog, ship file-level only.\nДокументировать в ADR.\n```",
-      "x": 720,
-      "y": 1000,
-      "width": 280,
-      "height": 260,
-      "color": "2"
-    },
-    {
-      "id": "6_4",
-      "type": "text",
-      "text": "### 6.4 Index cache & watch\n\nIncremental re-parse on file change.\nchokidar in main process.\n\n**Промт:**\n```\nDepGraphService: full build + applyFileChange.\nEmit depGraph:updated. Cache serialized graph.\nIgnore noise (same as indexer).\n```",
-      "x": 1020,
-      "y": 1000,
-      "width": 280,
-      "height": 260,
-      "color": "2"
-    },
-    {
-      "id": "phase7",
-      "type": "text",
-      "text": "## 🔽 Фаза 7 — RIGHT Codemap + Source",
-      "x": 200,
-      "y": 1440,
-      "width": 360,
-      "height": 60,
-      "color": "3"
-    },
-    {
-      "id": "7_1",
-      "type": "text",
-      "text": "### 7.1 Ego-network → RIGHT CodemapView\n\nfromSemanticNode → deps in + derives out.\nRender **in RIGHT only** (lists or mini-graph).\nLEFT semantic map untouched (+ highlight).\n\n**Промт:** AGENT_PLAN §7.1",
-      "x": 80,
-      "y": 1540,
-      "width": 300,
-      "height": 280,
-      "color": "3"
-    },
-    {
-      "id": "7_2",
-      "type": "text",
-      "text": "### 7.2 Codemap JSON (langgraph-like)\n\ntoCodemap → traces/locations.\nSave codemaps/{nodeId}.codemap\nRIGHT: trace list + expand locations.\n\n**Промт:** AGENT_PLAN §7.2",
-      "x": 400,
-      "y": 1540,
-      "width": 300,
-      "height": 260,
-      "color": "3"
-    },
-    {
-      "id": "7_3",
-      "type": "text",
-      "text": "### 7.3 RIGHT-only mode stack\n\nStack **inside RIGHT**:\nempty ↔ content ↔ codemap ↔ source\nBack btn + breadcrumb in RIGHT header.\nNo full-window navigation.\n\n**Промт:** AGENT_PLAN §7.3",
-      "x": 720,
-      "y": 1540,
-      "width": 280,
-      "height": 260,
-      "color": "3"
-    },
-    {
-      "id": "7_4",
-      "type": "text",
-      "text": "### 7.4 Source in RIGHT (monaco)\n\nmonaco RO in rightMode=source.\nFrom location / file. Back → codemap/content.\n\n**Промт:** AGENT_PLAN §7.4",
-      "x": 1020,
-      "y": 1540,
-      "width": 280,
-      "height": 240,
-      "color": "3"
-    },
-    {
-      "id": "phase8",
-      "type": "text",
-      "text": "## 🔗 Фаза 8 — LLM enrich codemap (optional depth)",
-      "x": 1620,
-      "y": -160,
-      "width": 380,
-      "height": 60,
-      "color": "5"
-    },
-    {
-      "id": "8_1",
-      "type": "text",
-      "text": "### 8.1 Trace generation prompt\n\nПо ego-network + file samples LLM пишет\ntraces как в langgraph.codemap\n(title, guide, locations must exist in graph).\n\n**Промт:**\n```\nenrichCodemap(structural, llm):\nLLM returns traces[]; filter locations\nnot in allowed set; merge with structural.\nMockProvider test preserves valid paths only.\n```",
-      "x": 1500,
-      "y": -60,
-      "width": 300,
-      "height": 280,
-      "color": "5"
-    },
-    {
-      "id": "8_2",
-      "type": "text",
-      "text": "### 8.2 Trace UI on canvas\n\nMode: highlight path of selected trace\n(sequential glow edges/nodes).\nPanel: traceGuide markdown.\n\n**Промт:**\n```\nTraceHighlighter: given location order,\nselect nodes/edges and pulse animation.\nMarkdown render traceGuide (sanitize).\n```",
-      "x": 1820,
-      "y": -60,
-      "width": 280,
-      "height": 260,
-      "color": "5"
-    },
-    {
-      "id": "8_3",
-      "type": "text",
-      "text": "### 8.3 Export / import\n\nExport: .canvas + .codemap zip.\nImport langgraph.codemap as read-only overlay\n(для research mode на vendor).\n\n**Промт:**\n```\nCommands: Export Research Bundle,\nImport Codemap. Load langgraph.codemap\nfrom workspace root as demo overlay.\n```",
-      "x": 2120,
-      "y": -60,
-      "width": 280,
-      "height": 260,
-      "color": "5"
-    },
-    {
-      "id": "phase9",
-      "type": "text",
-      "text": "## ⚡ Фаза 9 — Perf, privacy, polish",
-      "x": 1620,
-      "y": 320,
-      "width": 340,
-      "height": 60,
-      "color": "4"
-    },
-    {
-      "id": "9_1",
-      "type": "text",
-      "text": "### 9.1 Performance budgets\n\n- Index 10k files < 3s\n- DepGraph TS project 2k files < 15s\n- Canvas 500 nodes 60fps pan\nVirtualize if needed.\n\n**Промт:**\n```\nДобавь perf marks + simple benchmark CLI.\nDocument numbers in docs/perf.md.\nIf canvas lag: canvas2d culling offscreen nodes.\n```",
-      "x": 1500,
-      "y": 420,
-      "width": 280,
-      "height": 280,
-      "color": "4"
-    },
-    {
-      "id": "9_2",
-      "type": "text",
-      "text": "### 9.2 Privacy controls\n\n- Toggle: send code samples to LLM yes/no\n- Redact secrets (API keys patterns)\n- Local-only mode (Ollama)\n\n**Промт:**\n```\nSettings UI: privacy mode, provider, model.\ncontextPacker redacts /key|secret|token/i.\nLocal-only disables cloud providers.\n```",
-      "x": 1800,
-      "y": 420,
-      "width": 280,
-      "height": 260,
-      "color": "4"
-    },
-    {
-      "id": "9_3",
-      "type": "text",
-      "text": "### 9.3 UX polish\n\nMinimap, search nodes, keyboard map,\ntheme dark/light, welcome tour.\n\n**Промт:**\n```\nMinimap + Ctrl+F node search + shortcuts help.\nPersist window bounds. Splash/welcome\nexplaining semantic→codemap flow.\n```",
-      "x": 2100,
-      "y": 420,
-      "width": 280,
-      "height": 260,
-      "color": "4"
-    },
-    {
-      "id": "9_4",
-      "type": "text",
-      "text": "### 9.4 Resilience\n\nCrash recovery, corrupt cache repair,\nLLM schema repair loop (1 retry).\n\n**Промт:**\n```\nCache versioning; on parse fail quarantine\n+ rebuild. LLM invalid JSON → repair prompt once.\nLog to .infinity-canvas/logs/.\n```",
-      "x": 2400,
-      "y": 420,
-      "width": 280,
-      "height": 260,
-      "color": "4"
-    },
-    {
-      "id": "phase10",
-      "type": "text",
-      "text": "## 🚀 Фаза 10 — Ship: tests, package, docs",
-      "x": 1620,
-      "y": 800,
-      "width": 360,
-      "height": 60,
-      "color": "2"
-    },
-    {
-      "id": "10_1",
-      "type": "text",
-      "text": "### 10.1 E2E split path\n\nSmoke: open fixture → LEFT map (mock) →\nclick node → RIGHT content → Codemap →\nlocations > 0. vitest + playwright.\n\n**Промт:** AGENT_PLAN §10.1",
-      "x": 1500,
-      "y": 900,
-      "width": 280,
-      "height": 260,
-      "color": "2"
-    },
-    {
-      "id": "10_2",
-      "type": "text",
-      "text": "### 10.2 Packaging\n\nelectron-builder AppImage/dmg/nsis.\nAuto-update optional later.\n\n**Промт:**\n```\nelectron-builder config, icons, version from\npackage.json. Document release checklist.\n```",
-      "x": 1800,
-      "y": 900,
-      "width": 280,
-      "height": 240,
-      "color": "2"
-    },
-    {
-      "id": "10_3",
-      "type": "text",
-      "text": "### 10.3 Documentation\n\n- ARCHITECTURE.md (diagrams)\n- USER_GUIDE.md (semantic→codemap)\n- AGENT_RUNBOOK.md (phase prompts order)\n- RESEARCH.md links to docs/research/*\n\n**Промт:**\n```\nСгенерируй docs из фактического кода.\nAGENT_RUNBOOK: одна фаза = один PR,\nDoD checklist per phase, no skipping.\n```",
-      "x": 2100,
-      "y": 900,
-      "width": 280,
-      "height": 280,
-      "color": "2"
-    },
-    {
-      "id": "10_4",
-      "type": "text",
-      "text": "### 10.4 Research mode demo\n\nВстроенный demo: открыть этот repo\nast-canvas как workspace — semantic map\nпо 3 vendor folders + import langgraph.codemap.\n\n**Промт:**\n```\nDemo script + fixture config for ast-canvas\nworkspace. Verify user can explore\ninfinite-canvas vs code-canvas vs codemap\nwithout leaving the app.\n```",
-      "x": 2400,
-      "y": 900,
-      "width": 280,
-      "height": 280,
-      "color": "2"
-    },
-    {
-      "id": "agent_rules",
-      "type": "text",
-      "text": "## 🤖 Правила агента (анти-съезд)\n\n1. Читать `AGENT_PLAN.md` + этот canvas.\n2. **Layout:** LEFT canvas always · RIGHT reactive pane.\n3. Одна фаза/этап = один PR. Не skip DoD.\n4. Vendor read-only.\n5. Schema/tests before fancy UI.\n6. Mock LLM в dev/CI.\n7. North Star: open→LEFT map→click→RIGHT content/codemap.\n8. Atomic commits: stage id (2_3, 5_3…).\n9. File-level deps first; symbols later.\n10. `docs/STATUS.md` после этапа.",
-      "x": 1620,
-      "y": 1300,
-      "width": 440,
-      "height": 360,
-      "color": "6"
-    },
-    {
-      "id": "dod_global",
-      "type": "text",
-      "text": "## ✅ Global DoD (MVP)\n\n- [ ] Electron, **split LEFT|RIGHT**\n- [ ] Semantic map on LEFT (LLM/mock)\n- [ ] No selection → RIGHT empty\n- [ ] Click node → RIGHT content\n- [ ] Codemap → deps + derivatives\n- [ ] Source @ line in RIGHT\n- [ ] Splitter ratio persisted\n- [ ] Cache / offline mock\n- [ ] Tests + README\n\n**Non-goals:** drill-down replace LEFT, VS Code ext, webGL.",
-      "x": 2100,
-      "y": 1300,
-      "width": 360,
-      "height": 340,
-      "color": "1"
-    },
-    {
-      "id": "flow",
-      "type": "text",
-      "text": "## 🔁 Runtime + Layout\n\n```\n┌─ Toolbar ──────────────────────────┐\n│ LEFT: Infinity Canvas │ RIGHT: Pane │\n│ semantic map (always) │ empty       │\n│                       │ content     │\n│                       │ codemap     │\n│                       │ source      │\n└───────────────────────┴─────────────┘\n\nOpen Folder → map → LEFT\nClick node → RIGHT content\nCodemap → RIGHT deps+derives\nLocation → RIGHT monaco\nEsc → RIGHT empty\n```",
-      "x": 2500,
-      "y": 1300,
-      "width": 340,
-      "height": 340,
-      "color": "4"
-    },
-    {
-      "id": "layout_ui",
-      "type": "text",
-      "text": "## 🖥️ UI Layout (locked)\n\n```\nLEFT 60%              RIGHT 40%\n┌──────────────────┬─────────────────┐\n│ Infinity Canvas  │ Detail Pane     │\n│ semantic map     │ empty           │\n│ always visible   │ node content    │\n│                  │ codemap         │\n│                  │ source/monaco   │\n└──────────────────┴─────────────────┘\n     resizable splitter\n```\n\nPackage: `detail-pane` = RIGHT.\nPackage: `canvas-core` = LEFT.\nПлан: AGENT_PLAN.md",
-      "x": 280,
-      "y": -820,
-      "width": 380,
-      "height": 280,
-      "color": "1"
-    }
-  ],
-  "edges": [
-    {
-      "id": "e_t_ns",
-      "fromNode": "title",
-      "fromSide": "right",
-      "toNode": "north_star",
-      "toSide": "left"
-    },
-    {
-      "id": "e_ns_src",
-      "fromNode": "north_star",
-      "fromSide": "right",
-      "toNode": "sources",
-      "toSide": "left"
-    },
-    {
-      "id": "e_t_p1",
-      "fromNode": "title",
-      "fromSide": "bottom",
-      "toNode": "phase1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p1_11",
-      "fromNode": "phase1",
-      "fromSide": "bottom",
-      "toNode": "1_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p1_12",
-      "fromNode": "phase1",
-      "fromSide": "bottom",
-      "toNode": "1_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p1_13",
-      "fromNode": "phase1",
-      "fromSide": "bottom",
-      "toNode": "1_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p1_14",
-      "fromNode": "phase1",
-      "fromSide": "bottom",
-      "toNode": "1_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_11_12",
-      "fromNode": "1_1",
-      "fromSide": "right",
-      "toNode": "1_2",
-      "toSide": "left"
-    },
-    {
-      "id": "e_12_13",
-      "fromNode": "1_2",
-      "fromSide": "right",
-      "toNode": "1_3",
-      "toSide": "left"
-    },
-    {
-      "id": "e_13_14",
-      "fromNode": "1_3",
-      "fromSide": "right",
-      "toNode": "1_4",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p1_p2",
-      "fromNode": "phase1",
-      "fromSide": "bottom",
-      "toNode": "phase2",
-      "toSide": "top",
-      "label": "ADR ready"
-    },
-    {
-      "id": "e_p2_21",
-      "fromNode": "phase2",
-      "fromSide": "bottom",
-      "toNode": "2_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p2_22",
-      "fromNode": "phase2",
-      "fromSide": "bottom",
-      "toNode": "2_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p2_23",
-      "fromNode": "phase2",
-      "fromSide": "bottom",
-      "toNode": "2_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p2_24",
-      "fromNode": "phase2",
-      "fromSide": "bottom",
-      "toNode": "2_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_21_22",
-      "fromNode": "2_1",
-      "fromSide": "right",
-      "toNode": "2_2",
-      "toSide": "left"
-    },
-    {
-      "id": "e_22_23",
-      "fromNode": "2_2",
-      "fromSide": "right",
-      "toNode": "2_3",
-      "toSide": "left"
-    },
-    {
-      "id": "e_23_24",
-      "fromNode": "2_3",
-      "fromSide": "right",
-      "toNode": "2_4",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p2_p3",
-      "fromNode": "phase2",
-      "fromSide": "bottom",
-      "toNode": "phase3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p3_31",
-      "fromNode": "phase3",
-      "fromSide": "bottom",
-      "toNode": "3_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p3_32",
-      "fromNode": "phase3",
-      "fromSide": "bottom",
-      "toNode": "3_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p3_33",
-      "fromNode": "phase3",
-      "fromSide": "bottom",
-      "toNode": "3_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p3_34",
-      "fromNode": "phase3",
-      "fromSide": "bottom",
-      "toNode": "3_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_31_32",
-      "fromNode": "3_1",
-      "fromSide": "right",
-      "toNode": "3_2",
-      "toSide": "left"
-    },
-    {
-      "id": "e_32_33",
-      "fromNode": "3_2",
-      "fromSide": "right",
-      "toNode": "3_3",
-      "toSide": "left"
-    },
-    {
-      "id": "e_33_34",
-      "fromNode": "3_3",
-      "fromSide": "right",
-      "toNode": "3_4",
-      "toSide": "left"
-    },
-    {
-      "id": "e_t_p4",
-      "fromNode": "title",
-      "fromSide": "right",
-      "toNode": "phase4",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p4_41",
-      "fromNode": "phase4",
-      "fromSide": "bottom",
-      "toNode": "4_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p4_42",
-      "fromNode": "phase4",
-      "fromSide": "bottom",
-      "toNode": "4_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p4_43",
-      "fromNode": "phase4",
-      "fromSide": "bottom",
-      "toNode": "4_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p4_44",
-      "fromNode": "phase4",
-      "fromSide": "bottom",
-      "toNode": "4_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p4_45",
-      "fromNode": "phase4",
-      "fromSide": "bottom",
-      "toNode": "4_5",
-      "toSide": "top"
-    },
-    {
-      "id": "e_41_42",
-      "fromNode": "4_1",
-      "fromSide": "right",
-      "toNode": "4_2",
-      "toSide": "left"
-    },
-    {
-      "id": "e_42_43",
-      "fromNode": "4_2",
-      "fromSide": "right",
-      "toNode": "4_3",
-      "toSide": "left"
-    },
-    {
-      "id": "e_43_44",
-      "fromNode": "4_3",
-      "fromSide": "right",
-      "toNode": "4_4",
-      "toSide": "left"
-    },
-    {
-      "id": "e_44_45",
-      "fromNode": "4_4",
-      "fromSide": "right",
-      "toNode": "4_5",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p4_p5",
-      "fromNode": "phase4",
-      "fromSide": "bottom",
-      "toNode": "phase5",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p5_51",
-      "fromNode": "phase5",
-      "fromSide": "bottom",
-      "toNode": "5_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p5_52",
-      "fromNode": "phase5",
-      "fromSide": "bottom",
-      "toNode": "5_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p5_53",
-      "fromNode": "phase5",
-      "fromSide": "bottom",
-      "toNode": "5_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p5_54",
-      "fromNode": "phase5",
-      "fromSide": "bottom",
-      "toNode": "5_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_51_52",
-      "fromNode": "5_1",
-      "fromSide": "right",
-      "toNode": "5_2",
-      "toSide": "left"
-    },
-    {
-      "id": "e_52_53",
-      "fromNode": "5_2",
-      "fromSide": "right",
-      "toNode": "5_3",
-      "toSide": "left"
-    },
-    {
-      "id": "e_53_54",
-      "fromNode": "5_3",
-      "fromSide": "right",
-      "toNode": "5_4",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p5_p6",
-      "fromNode": "phase5",
-      "fromSide": "bottom",
-      "toNode": "phase6",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p6_61",
-      "fromNode": "phase6",
-      "fromSide": "bottom",
-      "toNode": "6_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p6_62",
-      "fromNode": "phase6",
-      "fromSide": "bottom",
-      "toNode": "6_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p6_63",
-      "fromNode": "phase6",
-      "fromSide": "bottom",
-      "toNode": "6_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p6_64",
-      "fromNode": "phase6",
-      "fromSide": "bottom",
-      "toNode": "6_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_61_62",
-      "fromNode": "6_1",
-      "fromSide": "right",
-      "toNode": "6_2",
-      "toSide": "left"
-    },
-    {
-      "id": "e_62_63",
-      "fromNode": "6_2",
-      "fromSide": "right",
-      "toNode": "6_3",
-      "toSide": "left"
-    },
-    {
-      "id": "e_63_64",
-      "fromNode": "6_3",
-      "fromSide": "right",
-      "toNode": "6_4",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p6_p7",
-      "fromNode": "phase6",
-      "fromSide": "bottom",
-      "toNode": "phase7",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p7_71",
-      "fromNode": "phase7",
-      "fromSide": "bottom",
-      "toNode": "7_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p7_72",
-      "fromNode": "phase7",
-      "fromSide": "bottom",
-      "toNode": "7_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p7_73",
-      "fromNode": "phase7",
-      "fromSide": "bottom",
-      "toNode": "7_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p7_74",
-      "fromNode": "phase7",
-      "fromSide": "bottom",
-      "toNode": "7_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_71_72",
-      "fromNode": "7_1",
-      "fromSide": "right",
-      "toNode": "7_2",
-      "toSide": "left"
-    },
-    {
-      "id": "e_72_73",
-      "fromNode": "7_2",
-      "fromSide": "right",
-      "toNode": "7_3",
-      "toSide": "left"
-    },
-    {
-      "id": "e_73_74",
-      "fromNode": "7_3",
-      "fromSide": "right",
-      "toNode": "7_4",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p5_p7",
-      "fromNode": "5_3",
-      "fromSide": "right",
-      "toNode": "7_1",
-      "toSide": "left",
-      "label": "rightMode=codemap"
-    },
-    {
-      "id": "e_p3_p4",
-      "fromNode": "3_1",
-      "fromSide": "right",
-      "toNode": "4_3",
-      "toSide": "left",
-      "label": "schema"
-    },
-    {
-      "id": "e_p3_p6",
-      "fromNode": "3_3",
-      "fromSide": "right",
-      "toNode": "6_2",
-      "toSide": "left",
-      "label": "DepGraph"
-    },
-    {
-      "id": "e_12_32",
-      "fromNode": "1_2",
-      "fromSide": "bottom",
-      "toNode": "3_2",
-      "toSide": "top",
-      "label": "codemap schema"
-    },
-    {
-      "id": "e_13_61",
-      "fromNode": "1_3",
-      "fromSide": "bottom",
-      "toNode": "6_1",
-      "toSide": "top",
-      "label": "extract patterns"
-    },
-    {
-      "id": "e_ns_p8",
-      "fromNode": "north_star",
-      "fromSide": "right",
-      "toNode": "phase8",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p8_81",
-      "fromNode": "phase8",
-      "fromSide": "bottom",
-      "toNode": "8_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p8_82",
-      "fromNode": "phase8",
-      "fromSide": "bottom",
-      "toNode": "8_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p8_83",
-      "fromNode": "phase8",
-      "fromSide": "bottom",
-      "toNode": "8_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_81_82",
-      "fromNode": "8_1",
-      "fromSide": "right",
-      "toNode": "8_2",
-      "toSide": "left"
-    },
-    {
-      "id": "e_82_83",
-      "fromNode": "8_2",
-      "fromSide": "right",
-      "toNode": "8_3",
-      "toSide": "left"
-    },
-    {
-      "id": "e_p7_p8",
-      "fromNode": "7_2",
-      "fromSide": "right",
-      "toNode": "8_1",
-      "toSide": "left",
-      "label": "enrich"
-    },
-    {
-      "id": "e_p8_p9",
-      "fromNode": "phase8",
-      "fromSide": "bottom",
-      "toNode": "phase9",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p9_91",
-      "fromNode": "phase9",
-      "fromSide": "bottom",
-      "toNode": "9_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p9_92",
-      "fromNode": "phase9",
-      "fromSide": "bottom",
-      "toNode": "9_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p9_93",
-      "fromNode": "phase9",
-      "fromSide": "bottom",
-      "toNode": "9_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p9_94",
-      "fromNode": "phase9",
-      "fromSide": "bottom",
-      "toNode": "9_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p9_p10",
-      "fromNode": "phase9",
-      "fromSide": "bottom",
-      "toNode": "phase10",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p10_101",
-      "fromNode": "phase10",
-      "fromSide": "bottom",
-      "toNode": "10_1",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p10_102",
-      "fromNode": "phase10",
-      "fromSide": "bottom",
-      "toNode": "10_2",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p10_103",
-      "fromNode": "phase10",
-      "fromSide": "bottom",
-      "toNode": "10_3",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p10_104",
-      "fromNode": "phase10",
-      "fromSide": "bottom",
-      "toNode": "10_4",
-      "toSide": "top"
-    },
-    {
-      "id": "e_p10_rules",
-      "fromNode": "phase10",
-      "fromSide": "bottom",
-      "toNode": "agent_rules",
-      "toSide": "top"
-    },
-    {
-      "id": "e_rules_dod",
-      "fromNode": "agent_rules",
-      "fromSide": "right",
-      "toNode": "dod_global",
-      "toSide": "left"
-    },
-    {
-      "id": "e_dod_flow",
-      "fromNode": "dod_global",
-      "fromSide": "right",
-      "toNode": "flow",
-      "toSide": "left"
-    },
-    {
-      "id": "e_ns_layout",
-      "fromNode": "north_star",
-      "fromSide": "bottom",
-      "toNode": "layout_ui",
-      "toSide": "top",
-      "label": "split UX"
-    },
-    {
-      "id": "e_layout_p2",
-      "fromNode": "layout_ui",
-      "fromSide": "bottom",
-      "toNode": "phase2",
-      "toSide": "top",
-      "label": "2.3 shell"
-    }
-  ]
+	"nodes":[
+		{"id":"title","type":"text","text":"# Infinity Canvas · Electron Split App\n**LEFT: Infinity Canvas · RIGHT: Detail (empty | node | codemap | source)**\n\nБаза: `luisfernando.infinite-canvas-0.1.5` → standalone Electron.\nСемантика: `langgraph.codemap`. AST: `alex-c` + `source/`.\n\n**UX-инвариант (корректировка):**\nодно окно, split: слева карта всегда; справа панель по selection.\nНе заменять canvas drill-down'ом.\n\nПлан агента: `AGENT_PLAN.md`","x":-200,"y":-680,"width":440,"height":280,"color":"1"},
+		{"id":"north_star","type":"text","text":"## 🎯 North Star\n\n1. Electron app, **не** VS Code extension.\n2. Open workspace → LLM → semantic `.canvas` на **LEFT**.\n3. **RIGHT** пустой, пока нет selection.\n4. Click node → RIGHT = content узла.\n5. Codemap action → RIGHT = deps (in) + derives (out) + locations.\n6. Location → RIGHT = source (monaco). LEFT не unmount.\n\n**DoD:** open → map LEFT ≤30s cache → click → RIGHT content/codemap → jump source.","x":280,"y":-520,"width":400,"height":280,"color":"5"},
+		{"id":"sources","type":"text","text":"## 📦 Источники (read-only research)\n\n| Path | Роль |\n|------|------|\n| `luisfernando.infinite-canvas-0.1.5/` | Canvas UI, .canvas format, AI bridge |\n| `langgraph.codemap` | Схема semantic traces |\n| `alex-c.code-canvas-app-0.14.8/` | AST deps, xyflow, ast-grep |\n| `source/deobfuscated.js` + `source/*.js` | Webview modules code-canvas |\n| `cremniy_canvas.canvas` | Формат roadmap-промптов |\n\n**Правило:** не править vendor; только extract → own code.","x":740,"y":-520,"width":360,"height":260,"color":"6"},
+		{"id":"phase1","type":"text","text":"## 🔍 Фаза 1 — Reverse Engineering источников","x":-900,"y":-160,"width":340,"height":60,"color":"3"},
+		{"id":"1_1","type":"text","text":"### 1.1 Infinite Canvas architecture\n\nРазобрать extension host + webview.\n\n**Файлы:**\n- `luisfernando.../out/extension.js`\n- `webview/main.js`\n- `webview/src/InfiniteCanvasSimple.js`\n- `AIManager.js`, `aiService.js`\n\n**Артефакт:** `docs/research/01-infinite-canvas.md`\n— message protocol, .canvas I/O, pan/zoom, AI hooks.\n\n**Промт агенту:**\n```\nИсследуй luisfernando.infinite-canvas-0.1.5.\nСоставь карту: activation, CanvasEditorProvider,\nwebview messaging (loadContent/save/loadFile),\nформат nodes/edges Obsidian-совместимый,\nкак AIManager генерит текст узлов.\nНе меняй код. Только markdown-отчёт +\nдиаграмма data flow Extension↔Webview↔.canvas.\n```","x":-1180,"y":-60,"width":300,"height":380,"color":"3"},
+		{"id":"1_2","type":"text","text":"### 1.2 Codemap schema (langgraph)\n\nФормализовать semantic graph schema.\n\n**Файл:** `langgraph.codemap`\n\nПоля: schemaVersion, traces[], locations[],\ntraceTextDiagram, mermaidDiagram, metadata.\n\n**Артефакт:** `docs/research/02-codemap-schema.md`\n+ TypeScript types `packages/schema/codemap.ts`\n\n**Промт агенту:**\n```\nПрочитай langgraph.codemap целиком.\nВыдели JSON-schema: root, Trace, Location,\nобязательные/опциональные поля, id-стратегии.\nОпиши mapping Trace→canvas node,\nLocation→drill-down card, edges между traces\nпо общим path/import.\nВыдай Zod-схему + пример минимального codemap\nна 2 traces. Код vendor не трогать.\n```","x":-860,"y":-60,"width":300,"height":380,"color":"3"},
+		{"id":"1_3","type":"text","text":"### 1.3 Code Canvas + deobfuscated\n\nИзвлечь AST/deps/layout паттерны.\n\n**Файлы:**\n- package.json (ast-grep, @xyflow/react, zustand)\n- source/deobfuscated.js + source/*.js\n- dist/extension.js (host commands)\n\n**Артефакт:** `docs/research/03-code-canvas-extract.md`\n— file graph, token refs, layout, ignore rules.\n\n**Промт агенту:**\n```\nИсследуй alex-c.code-canvas-app-0.14.8 и source/.\nНайди: как строится file/import graph,\nкак token references/deps edges,\nlayout algorithm hints, ignore patterns,\nwebview postMessage API (если видно).\nСписок capability checklist:\n[ ] folder tree [ ] open file on canvas\n[ ] deps edges [ ] token refs [ ] live watch.\nСсылки на module ids в source/*.js.\nБез reimplementation — только карта.\n```","x":-540,"y":-60,"width":300,"height":380,"color":"3"},
+		{"id":"1_4","type":"text","text":"### 1.4 Gap matrix & decisions\n\nСвести 3 источника → target architecture.\n\n**Артефакт:** `docs/research/04-gap-matrix.md`\n\n| Capability | infinite | codemap | code-canvas | Ours |\n| Canvas pan/zoom | ✅ | — | ✅ | own |\n| LLM semantic map | partial AI | ✅ schema | — | core |\n| AST deps | — | locations | ✅ | core |\n| Drill-down | — | traces | open file | core |\n\n**Промт:**\n```\nПо docs/research/01-03 составь gap-matrix\nи ADR: (1) Electron vs VS Code extension first,\n(2) canvas renderer: canvas2d vs xyflow/react,\n(3) LLM provider interface, (4) local AST engine.\nРекомендация + risks. Max 2 страницы.\n```","x":-220,"y":-60,"width":300,"height":380,"color":"3"},
+		{"id":"phase2","type":"text","text":"## 🧱 Фаза 2 — Electron + Split shell","x":-900,"y":420,"width":360,"height":60,"color":"4"},
+		{"id":"2_1","type":"text","text":"### 2.1 Repo skeleton\n\n```\napps/desktop/\npackages/canvas-core/   # LEFT\npackages/detail-pane/   # RIGHT\npackages/schema|semantic|ast-graph|ipc|session\n```\n\n**Промт:** monorepo pnpm, electron-vite React TS,\npackages exports, README scripts. Vendor не копировать.\nСм. AGENT_PLAN.md §2.1","x":-1180,"y":520,"width":300,"height":280,"color":"4"},
+		{"id":"2_2","type":"text","text":"### 2.2 Main + preload\n\nBrowserWindow, Open Folder, secure preload IPC.\nRenderer: workspace path + file count.\n\n**Промт:** см. AGENT_PLAN.md §2.2","x":-860,"y":520,"width":300,"height":220,"color":"4"},
+		{"id":"2_3","type":"text","text":"### 2.3 ⭐ AppShell split LEFT|RIGHT\n\n**Критический UX-этап.**\n\n```\n[Toolbar]\n[LeftPane | Splitter | RightPane]\nrightMode: empty|content|codemap|source\n```\n\nLEFT placeholder → later canvas.\nRIGHT: empty hint · mock content · mock codemap.\nSplitter + persist leftRatio.\nEsc → empty. LEFT never navigates away.\n\n**Промт:** AGENT_PLAN.md §2.3\n**DoD:** mock click → RIGHT fills; LEFT stable.","x":-540,"y":520,"width":300,"height":380,"color":"4"},
+		{"id":"2_4","type":"text","text":"### 2.4 Port canvas → LEFT + indexer\n\nPort InfiniteCanvasSimple → canvas-core in LeftPane.\nClick node → onSelect → RIGHT content.\n+ WorkspaceIndexer (ignore globs).\n\n**Промт:** AGENT_PLAN §2.4 + §2.5\nRoundtrip .canvas tests.","x":-220,"y":520,"width":300,"height":300,"color":"4"},
+		{"id":"phase3","type":"text","text":"## 📐 Фаза 3 — Unified data model","x":-900,"y":960,"width":320,"height":60,"color":"6"},
+		{"id":"3_1","type":"text","text":"### 3.1 Canvas document model\n\nObsidian-compatible + extensions:\n\n```ts\ntype ICNode = {\n  id, type: 'text'|'file'|'semantic'|'group',\n  x,y,width,height, color?,\n  text?, file?,\n  // extensions:\n  semantic?: { kind, summary, traceIds[] },\n  graph?: { path, symbol?, role: 'module'|'fn'|'class' }\n}\ntype ICEdge = {\n  id, fromNode, toNode, fromSide?, toSide?,\n  kind?: 'semantic'|'import'|'call'|'inherit'|'derives',\n  label?\n}\n```\n\n**Промт:**\n```\npackages/schema: Zod + TS types для\nCanvasDocument (Obsidian + IC extensions),\nвалидатор, migrateLegacy().\nТесты: cremniy_canvas.canvas парсится;\nрасширенные поля roundtrip; strip unknown OK.\n```","x":-1180,"y":1060,"width":300,"height":380,"color":"6"},
+		{"id":"3_2","type":"text","text":"### 3.2 Codemap model\n\n1:1 с langgraph.codemap + normalizer.\n\n```ts\nCodemap {\n  schemaVersion, id, stableId, title,\n  metadata, traces: Trace[],\n  description?, mermaidDiagram?\n}\nTrace { id, title, description,\n  locations: Location[],\n  traceTextDiagram?, traceGuide? }\nLocation { id, path, lineNumber,\n  lineContent?, title?, description? }\n```\n\n**Промт:**\n```\npackages/schema/codemap.ts из langgraph.codemap.\nparseCodemap(), validate(), toCanvasProjection()\n(traces→nodes, heuristic edges).\nGolden test: load langgraph.codemap →\nN nodes == traces.length.\n```","x":-860,"y":1060,"width":300,"height":360,"color":"6"},
+		{"id":"3_3","type":"text","text":"### 3.3 Dependency graph model\n\n```ts\nDepGraph {\n  nodes: Map<path|symbolId, DepNode>\n  edges: DepEdge[] // import|call|type|export\n}\nDepNode { id, path, name, kind, exports[] }\nDepEdge { from, to, kind, loc? }\n// derived:\nincoming(id), outgoing(id), subgraph(id, depth)\n```\n\n**Промт:**\n```\npackages/schema/dep-graph.ts + pure helpers:\nincoming, outgoing, egoNetwork(center, depth),\ntopologicalLayers (DAG only).\nФикстура 5 файлов A→B→C. Тесты helpers.\n```","x":-540,"y":1060,"width":300,"height":340,"color":"6"},
+		{"id":"3_4","type":"text","text":"### 3.4 Session state (incl. split UI)\n\n```ts\nui: {\n  selectedNodeId,\n  rightMode: 'empty'|'content'|'codemap'|'source',\n  leftRatio,\n  source?: { path, line }\n}\n```\n\nCache `.infinity-canvas/`. IPC session:get/patch.\n\n**Промт:** AGENT_PLAN §3.4","x":-220,"y":1060,"width":300,"height":320,"color":"6"},
+		{"id":"phase4","type":"text","text":"## 🤖 Фаза 4 — LLM Semantic Map (on project open)","x":200,"y":-160,"width":380,"height":60,"color":"5"},
+		{"id":"4_1","type":"text","text":"### 4.1 Context packer\n\nСобрать prompt context без отправки всего repo:\n- tree (depth-limited)\n- package.json / README / entrypoints\n- top-N files by centrality (import degree later)\n- budgets: tokens / max files\n\n**Промт:**\n```\npackages/semantic/contextPacker.ts:\ninput FileMeta[] + optional DepGraph skeleton,\noutput ContextPack { tree, manifests, samples[] }\nс hard budget (e.g. 80k chars).\nПриоритет: README, package.json, src/index*,\nmain modules. Тест на fixtures/mini-project.\n```","x":80,"y":-60,"width":300,"height":320,"color":"5"},
+		{"id":"4_2","type":"text","text":"### 4.2 LLM provider interface\n\n```ts\ninterface LLMProvider {\n  complete(req: {\n    system, user, jsonSchema?\n  }): Promise<string>\n}\n// OpenRouter | OpenAI | Ollama | Mock\n```\nConfig: API key в secure store Electron.\n\n**Промт:**\n```\npackages/semantic/providers/*\nLLMProvider interface + MockProvider\n(deterministic JSON map) + OpenRouterProvider.\nEnv: INFINITY_LLM_API_KEY, model name.\nRetry/timeout. Не логировать secrets.\n```","x":400,"y":-60,"width":300,"height":300,"color":"5"},
+		{"id":"4_3","type":"text","text":"### 4.3 Semantic map prompt + parser\n\nSystem prompt: вернуть JSON CanvasDocument\n(semantic nodes) в духе langgraph traces:\n- 5–20 nodes (modules/concepts)\n- edges kind=semantic\n- summary 1–3 sentences\n- optional file anchors[]\n\nValidate Zod → fallback layout.\n\n**Промт:**\n```\nРеализуй buildSemanticMap(pack, llm):\n1) system+user prompt templates\n2) parse JSON (fence-strip)\n3) validate CanvasDocument\n4) assign x,y grid if missing\n5) return map + diagnostics\nGolden: MockProvider → valid canvas\ncompatible with infinite-canvas loader.\nPrompt must mirror codemap philosophy:\nnodes = structural invariants / subsystems.\n```","x":720,"y":-60,"width":300,"height":360,"color":"5"},
+		{"id":"4_4","type":"text","text":"### 4.4 Orchestrate → LEFT map, RIGHT empty\n\nonWorkspaceOpen → semantic map → **LEFT only**.\nRIGHT remains empty until selection.\nProgress + cancel + cache.\n\n**Промт:** AGENT_PLAN §4.4","x":1040,"y":-60,"width":300,"height":280,"color":"5"},
+		{"id":"4_5","type":"text","text":"### 4.5 Incremental refresh\n\nКнопки: Regenerate Map / Update delta.\nDelta: only changed files summaries → LLM merge.\n\n**Промт:**\n```\nДобавь semanticMap:regenerate и :patch.\nPatch mode: diff file list vs previous cacheKey,\nLLM merge instruction preserve stable node ids\nwhere possible. Тест Mock merge keeps id=auth.\n```","x":1360,"y":-60,"width":280,"height":260,"color":"5"},
+		{"id":"phase5","type":"text","text":"## 🎨 Фаза 5 — LEFT map UX + RIGHT content","x":200,"y":420,"width":340,"height":60,"color":"1"},
+		{"id":"5_1","type":"text","text":"### 5.1 Semantic node chrome\n\nВизуал узла:\n- title + kind badge (module/layer/flow)\n- 2-line summary\n- counters: files · deps\n- color by layer\n\n**Промт:**\n```\nВ canvas-core renderer: SemanticNodeView.\nДанные из node.semantic. Hover outline,\nselected glow. Не ломать text/file nodes\nиз Obsidian format.\n```","x":80,"y":520,"width":280,"height":280,"color":"1"},
+		{"id":"5_2","type":"text","text":"### 5.2 Semantic edges & layout\n\nkind=semantic: dashed/colored.\nAuto-layout: hierarchical (sugiyama-lite)\nили force-directed fallback.\nFit-to-view after load.\n\n**Промт:**\n```\npackages/canvas-core/layout:\nhierarchicalLayout(nodes, edges) + fitView.\nApply after semantic map load.\nEdges: stroke by kind; label optional.\nTest: no overlapping centers on 10-node chain.\n```","x":380,"y":520,"width":280,"height":280,"color":"1"},
+		{"id":"5_3","type":"text","text":"### 5.3 Click → RIGHT content (not replace LEFT)\n\nSingle click:\n  selectedNodeId + rightMode='content'\nRIGHT ContentView: title, summary, files[],\n  [Codemap] [files]\ntext node → show text; file node → preview.\n\nEsc → rightMode='empty'\n**LEFT stays mounted.**\n\n**Промт:** AGENT_PLAN §5.3","x":680,"y":520,"width":280,"height":320,"color":"1"},
+		{"id":"5_4","type":"text","text":"### 5.4 Toolbar & empty/error states\n\nToolbar: Open Folder · Regenerate ·\nZoom fit · Toggle minimap.\nErrors: LLM fail → Mock/offline map + toast.\n\n**Промт:**\n```\nUI shell: toolbar, status bar (workspace,\nmap age, node count), error banner with Retry.\nOffline: load last cache or skeleton map\nfrom folder tree only (no LLM).\n```","x":980,"y":520,"width":280,"height":280,"color":"1"},
+		{"id":"phase6","type":"text","text":"## 🧬 Фаза 6 — AST / Dependency engine","x":200,"y":900,"width":360,"height":60,"color":"2"},
+		{"id":"6_1","type":"text","text":"### 6.1 Language adapters\n\nMVP languages: TS/JS first (import/export).\nLater: Python, Go via ast-grep langs.\n\n```ts\ninterface LangAdapter {\n  extensions: string[]\n  extract(file, src): { imports, exports, symbols }\n}\n```\n\n**Промт:**\n```\npackages/ast-graph/adapters/ts-js.ts:\nparse imports/exports (typescript compiler API\nили lightweight regex+acorn — выбрать и ADR).\nFixture multi-file project. Snapshot extract().\nНе тащить весь @ast-grep пока не нужно.\n```","x":80,"y":1000,"width":300,"height":340,"color":"2"},
+		{"id":"6_2","type":"text","text":"### 6.2 Build DepGraph\n\nResolve relative/absolute imports → edges.\nHandle index files, package.json exports\nbest-effort.\n\n**Промт:**\n```\nbuildDepGraph(root, files, adapters):\nDepGraph. Resolve paths, skip externals\n(node_modules) as external nodes optional.\nAPI: getEgo(path, depth=1|2).\nTest chain A imports B imports C.\n```","x":400,"y":1000,"width":300,"height":300,"color":"2"},
+		{"id":"6_3","type":"text","text":"### 6.3 Symbol-level edges (optional MVP+)\n\ncall/type references inside module\n(вдохновение code-canvas token refs).\n\n**Промт:**\n```\nSpike: для одного TS файла извлечь\nfunction calls to local imports.\nЕсли >2 дня — mark backlog, ship file-level only.\nДокументировать в ADR.\n```","x":720,"y":1000,"width":280,"height":260,"color":"2"},
+		{"id":"6_4","type":"text","text":"### 6.4 Index cache & watch\n\nIncremental re-parse on file change.\nchokidar in main process.\n\n**Промт:**\n```\nDepGraphService: full build + applyFileChange.\nEmit depGraph:updated. Cache serialized graph.\nIgnore noise (same as indexer).\n```","x":1020,"y":1000,"width":280,"height":260,"color":"2"},
+		{"id":"phase7","type":"text","text":"## 🔽 Фаза 7 — RIGHT Codemap + Source","x":200,"y":1440,"width":360,"height":60,"color":"3"},
+		{"id":"7_1","type":"text","text":"### 7.1 Ego-network → RIGHT CodemapView\n\nfromSemanticNode → deps in + derives out.\nRender **in RIGHT only** (lists or mini-graph).\nLEFT semantic map untouched (+ highlight).\n\n**Промт:** AGENT_PLAN §7.1","x":80,"y":1540,"width":300,"height":280,"color":"3"},
+		{"id":"7_2","type":"text","text":"### 7.2 Codemap JSON (langgraph-like)\n\ntoCodemap → traces/locations.\nSave codemaps/{nodeId}.codemap\nRIGHT: trace list + expand locations.\n\n**Промт:** AGENT_PLAN §7.2","x":400,"y":1540,"width":300,"height":260,"color":"3"},
+		{"id":"7_3","type":"text","text":"### 7.3 RIGHT-only mode stack\n\nStack **inside RIGHT**:\nempty ↔ content ↔ codemap ↔ source\nBack btn + breadcrumb in RIGHT header.\nNo full-window navigation.\n\n**Промт:** AGENT_PLAN §7.3","x":720,"y":1540,"width":280,"height":260,"color":"3"},
+		{"id":"7_4","type":"text","text":"### 7.4 Source in RIGHT (monaco)\n\nmonaco RO in rightMode=source.\nFrom location / file. Back → codemap/content.\n\n**Промт:** AGENT_PLAN §7.4","x":1020,"y":1540,"width":280,"height":240,"color":"3"},
+		{"id":"phase8","type":"text","text":"## 🔗 Фаза 8 — LLM enrich codemap (optional depth)","x":1620,"y":-160,"width":380,"height":60,"color":"5"},
+		{"id":"8_1","type":"text","text":"### 8.1 Trace generation prompt\n\nПо ego-network + file samples LLM пишет\ntraces как в langgraph.codemap\n(title, guide, locations must exist in graph).\n\n**Промт:**\n```\nenrichCodemap(structural, llm):\nLLM returns traces[]; filter locations\nnot in allowed set; merge with structural.\nMockProvider test preserves valid paths only.\n```","x":1500,"y":-60,"width":300,"height":280,"color":"5"},
+		{"id":"8_2","type":"text","text":"### 8.2 Trace UI on canvas\n\nMode: highlight path of selected trace\n(sequential glow edges/nodes).\nPanel: traceGuide markdown.\n\n**Промт:**\n```\nTraceHighlighter: given location order,\nselect nodes/edges and pulse animation.\nMarkdown render traceGuide (sanitize).\n```","x":1820,"y":-60,"width":280,"height":260,"color":"5"},
+		{"id":"8_3","type":"text","text":"### 8.3 Export / import\n\nExport: .canvas + .codemap zip.\nImport langgraph.codemap as read-only overlay\n(для research mode на vendor).\n\n**Промт:**\n```\nCommands: Export Research Bundle,\nImport Codemap. Load langgraph.codemap\nfrom workspace root as demo overlay.\n```","x":2120,"y":-60,"width":280,"height":260,"color":"5"},
+		{"id":"phase9","type":"text","text":"## ⚡ Фаза 9 — Perf, privacy, polish","x":1620,"y":320,"width":340,"height":60,"color":"4"},
+		{"id":"9_1","type":"text","text":"### 9.1 Performance budgets\n\n- Index 10k files < 3s\n- DepGraph TS project 2k files < 15s\n- Canvas 500 nodes 60fps pan\nVirtualize if needed.\n\n**Промт:**\n```\nДобавь perf marks + simple benchmark CLI.\nDocument numbers in docs/perf.md.\nIf canvas lag: canvas2d culling offscreen nodes.\n```","x":1500,"y":420,"width":280,"height":280,"color":"4"},
+		{"id":"9_2","type":"text","text":"### 9.2 Privacy controls\n\n- Toggle: send code samples to LLM yes/no\n- Redact secrets (API keys patterns)\n- Local-only mode (Ollama)\n\n**Промт:**\n```\nSettings UI: privacy mode, provider, model.\ncontextPacker redacts /key|secret|token/i.\nLocal-only disables cloud providers.\n```","x":1800,"y":420,"width":280,"height":260,"color":"4"},
+		{"id":"9_3","type":"text","text":"### 9.3 UX polish\n\nMinimap, search nodes, keyboard map,\ntheme dark/light, welcome tour.\n\n**Промт:**\n```\nMinimap + Ctrl+F node search + shortcuts help.\nPersist window bounds. Splash/welcome\nexplaining semantic→codemap flow.\n```","x":2100,"y":420,"width":280,"height":260,"color":"4"},
+		{"id":"9_4","type":"text","text":"### 9.4 Resilience\n\nCrash recovery, corrupt cache repair,\nLLM schema repair loop (1 retry).\n\n**Промт:**\n```\nCache versioning; on parse fail quarantine\n+ rebuild. LLM invalid JSON → repair prompt once.\nLog to .infinity-canvas/logs/.\n```","x":2400,"y":420,"width":280,"height":260,"color":"4"},
+		{"id":"phase10","type":"text","text":"## 🚀 Фаза 10 — Ship: tests, package, docs","x":1620,"y":800,"width":360,"height":60,"color":"2"},
+		{"id":"10_1","type":"text","text":"### 10.1 E2E split path\n\nSmoke: open fixture → LEFT map (mock) →\nclick node → RIGHT content → Codemap →\nlocations > 0. vitest + playwright.\n\n**Промт:** AGENT_PLAN §10.1","x":1500,"y":900,"width":280,"height":260,"color":"2"},
+		{"id":"10_2","type":"text","text":"### 10.2 Packaging\n\nelectron-builder AppImage/dmg/nsis.\nAuto-update optional later.\n\n**Промт:**\n```\nelectron-builder config, icons, version from\npackage.json. Document release checklist.\n```","x":1800,"y":900,"width":280,"height":240,"color":"2"},
+		{"id":"10_3","type":"text","text":"### 10.3 Documentation\n\n- ARCHITECTURE.md (diagrams)\n- USER_GUIDE.md (semantic→codemap)\n- AGENT_RUNBOOK.md (phase prompts order)\n- RESEARCH.md links to docs/research/*\n\n**Промт:**\n```\nСгенерируй docs из фактического кода.\nAGENT_RUNBOOK: одна фаза = один PR,\nDoD checklist per phase, no skipping.\n```","x":2100,"y":900,"width":280,"height":280,"color":"2"},
+		{"id":"10_4","type":"text","text":"### 10.4 Research mode demo\n\nВстроенный demo: открыть этот repo\nast-canvas как workspace — semantic map\nпо 3 vendor folders + import langgraph.codemap.\n\n**Промт:**\n```\nDemo script + fixture config for ast-canvas\nworkspace. Verify user can explore\ninfinite-canvas vs code-canvas vs codemap\nwithout leaving the app.\n```","x":2400,"y":900,"width":280,"height":280,"color":"2"},
+		{"id":"agent_rules","type":"text","text":"## 🤖 Правила агента (анти-съезд)\n\n1. Читать `AGENT_PLAN.md` + этот canvas.\n2. **Layout:** LEFT canvas always · RIGHT reactive pane.\n3. Одна фаза/этап = один PR. Не skip DoD.\n4. Vendor read-only.\n5. Schema/tests before fancy UI.\n6. Mock LLM в dev/CI.\n7. North Star: open→LEFT map→click→RIGHT content/codemap.\n8. Atomic commits: stage id (2_3, 5_3…).\n9. File-level deps first; symbols later.\n10. `docs/STATUS.md` после этапа.","x":1620,"y":1300,"width":440,"height":360,"color":"6"},
+		{"id":"dod_global","type":"text","text":"## ✅ Global DoD (MVP)\n\n- [ ] Electron, **split LEFT|RIGHT**\n- [ ] Semantic map on LEFT (LLM/mock)\n- [ ] No selection → RIGHT empty\n- [ ] Click node → RIGHT content\n- [ ] Codemap → deps + derivatives\n- [ ] Source @ line in RIGHT\n- [ ] Splitter ratio persisted\n- [ ] Cache / offline mock\n- [ ] Tests + README\n\n**Non-goals:** drill-down replace LEFT, VS Code ext, webGL.","x":2100,"y":1300,"width":360,"height":340,"color":"1"},
+		{"id":"flow","type":"text","text":"## 🔁 Runtime + Layout\n\n```\n┌─ Toolbar ──────────────────────────┐\n│ LEFT: Infinity Canvas │ RIGHT: Pane │\n│ semantic map (always) │ empty       │\n│                       │ content     │\n│                       │ codemap     │\n│                       │ source      │\n└───────────────────────┴─────────────┘\n\nOpen Folder → map → LEFT\nClick node → RIGHT content\nCodemap → RIGHT deps+derives\nLocation → RIGHT monaco\nEsc → RIGHT empty\n```","x":2500,"y":1300,"width":340,"height":340,"color":"4"},
+		{"id":"layout_ui","type":"text","text":"## 🖥️ UI Layout (locked)\n\n```\nLEFT 60%              RIGHT 40%\n┌──────────────────┬─────────────────┐\n│ Infinity Canvas  │ Detail Pane     │\n│ semantic map     │ empty           │\n│ always visible   │ node content    │\n│                  │ codemap         │\n│                  │ source/monaco   │\n└──────────────────┴─────────────────┘\n     resizable splitter\n```\n\nPackage: `detail-pane` = RIGHT.\nPackage: `canvas-core` = LEFT.\nПлан: AGENT_PLAN.md","x":280,"y":-820,"width":380,"height":280,"color":"1"}
+	],
+	"edges":[
+		{"id":"e_t_ns","fromNode":"title","fromSide":"right","toNode":"north_star","toSide":"left"},
+		{"id":"e_ns_src","fromNode":"north_star","fromSide":"right","toNode":"sources","toSide":"left"},
+		{"id":"e_t_p1","fromNode":"title","fromSide":"bottom","toNode":"phase1","toSide":"top"},
+		{"id":"e_p1_11","fromNode":"phase1","fromSide":"bottom","toNode":"1_1","toSide":"top"},
+		{"id":"e_p1_12","fromNode":"phase1","fromSide":"bottom","toNode":"1_2","toSide":"top"},
+		{"id":"e_p1_13","fromNode":"phase1","fromSide":"bottom","toNode":"1_3","toSide":"top"},
+		{"id":"e_p1_14","fromNode":"phase1","fromSide":"bottom","toNode":"1_4","toSide":"top"},
+		{"id":"e_11_12","fromNode":"1_1","fromSide":"right","toNode":"1_2","toSide":"left"},
+		{"id":"e_12_13","fromNode":"1_2","fromSide":"right","toNode":"1_3","toSide":"left"},
+		{"id":"e_13_14","fromNode":"1_3","fromSide":"right","toNode":"1_4","toSide":"left"},
+		{"id":"e_p1_p2","fromNode":"phase1","fromSide":"bottom","toNode":"phase2","toSide":"top","label":"ADR ready"},
+		{"id":"e_p2_21","fromNode":"phase2","fromSide":"bottom","toNode":"2_1","toSide":"top"},
+		{"id":"e_p2_22","fromNode":"phase2","fromSide":"bottom","toNode":"2_2","toSide":"top"},
+		{"id":"e_p2_23","fromNode":"phase2","fromSide":"bottom","toNode":"2_3","toSide":"top"},
+		{"id":"e_p2_24","fromNode":"phase2","fromSide":"bottom","toNode":"2_4","toSide":"top"},
+		{"id":"e_21_22","fromNode":"2_1","fromSide":"right","toNode":"2_2","toSide":"left"},
+		{"id":"e_22_23","fromNode":"2_2","fromSide":"right","toNode":"2_3","toSide":"left"},
+		{"id":"e_23_24","fromNode":"2_3","fromSide":"right","toNode":"2_4","toSide":"left"},
+		{"id":"e_p2_p3","fromNode":"phase2","fromSide":"bottom","toNode":"phase3","toSide":"top"},
+		{"id":"e_p3_31","fromNode":"phase3","fromSide":"bottom","toNode":"3_1","toSide":"top"},
+		{"id":"e_p3_32","fromNode":"phase3","fromSide":"bottom","toNode":"3_2","toSide":"top"},
+		{"id":"e_p3_33","fromNode":"phase3","fromSide":"bottom","toNode":"3_3","toSide":"top"},
+		{"id":"e_p3_34","fromNode":"phase3","fromSide":"bottom","toNode":"3_4","toSide":"top"},
+		{"id":"e_31_32","fromNode":"3_1","fromSide":"right","toNode":"3_2","toSide":"left"},
+		{"id":"e_32_33","fromNode":"3_2","fromSide":"right","toNode":"3_3","toSide":"left"},
+		{"id":"e_33_34","fromNode":"3_3","fromSide":"right","toNode":"3_4","toSide":"left"},
+		{"id":"e_t_p4","fromNode":"title","fromSide":"right","toNode":"phase4","toSide":"left"},
+		{"id":"e_p4_41","fromNode":"phase4","fromSide":"bottom","toNode":"4_1","toSide":"top"},
+		{"id":"e_p4_42","fromNode":"phase4","fromSide":"bottom","toNode":"4_2","toSide":"top"},
+		{"id":"e_p4_43","fromNode":"phase4","fromSide":"bottom","toNode":"4_3","toSide":"top"},
+		{"id":"e_p4_44","fromNode":"phase4","fromSide":"bottom","toNode":"4_4","toSide":"top"},
+		{"id":"e_p4_45","fromNode":"phase4","fromSide":"bottom","toNode":"4_5","toSide":"top"},
+		{"id":"e_41_42","fromNode":"4_1","fromSide":"right","toNode":"4_2","toSide":"left"},
+		{"id":"e_42_43","fromNode":"4_2","fromSide":"right","toNode":"4_3","toSide":"left"},
+		{"id":"e_43_44","fromNode":"4_3","fromSide":"right","toNode":"4_4","toSide":"left"},
+		{"id":"e_44_45","fromNode":"4_4","fromSide":"right","toNode":"4_5","toSide":"left"},
+		{"id":"e_p4_p5","fromNode":"phase4","fromSide":"bottom","toNode":"phase5","toSide":"top"},
+		{"id":"e_p5_51","fromNode":"phase5","fromSide":"bottom","toNode":"5_1","toSide":"top"},
+		{"id":"e_p5_52","fromNode":"phase5","fromSide":"bottom","toNode":"5_2","toSide":"top"},
+		{"id":"e_p5_53","fromNode":"phase5","fromSide":"bottom","toNode":"5_3","toSide":"top"},
+		{"id":"e_p5_54","fromNode":"phase5","fromSide":"bottom","toNode":"5_4","toSide":"top"},
+		{"id":"e_51_52","fromNode":"5_1","fromSide":"right","toNode":"5_2","toSide":"left"},
+		{"id":"e_52_53","fromNode":"5_2","fromSide":"right","toNode":"5_3","toSide":"left"},
+		{"id":"e_53_54","fromNode":"5_3","fromSide":"right","toNode":"5_4","toSide":"left"},
+		{"id":"e_p5_p6","fromNode":"phase5","fromSide":"bottom","toNode":"phase6","toSide":"top"},
+		{"id":"e_p6_61","fromNode":"phase6","fromSide":"bottom","toNode":"6_1","toSide":"top"},
+		{"id":"e_p6_62","fromNode":"phase6","fromSide":"bottom","toNode":"6_2","toSide":"top"},
+		{"id":"e_p6_63","fromNode":"phase6","fromSide":"bottom","toNode":"6_3","toSide":"top"},
+		{"id":"e_p6_64","fromNode":"phase6","fromSide":"bottom","toNode":"6_4","toSide":"top"},
+		{"id":"e_61_62","fromNode":"6_1","fromSide":"right","toNode":"6_2","toSide":"left"},
+		{"id":"e_62_63","fromNode":"6_2","fromSide":"right","toNode":"6_3","toSide":"left"},
+		{"id":"e_63_64","fromNode":"6_3","fromSide":"right","toNode":"6_4","toSide":"left"},
+		{"id":"e_p6_p7","fromNode":"phase6","fromSide":"bottom","toNode":"phase7","toSide":"top"},
+		{"id":"e_p7_71","fromNode":"phase7","fromSide":"bottom","toNode":"7_1","toSide":"top"},
+		{"id":"e_p7_72","fromNode":"phase7","fromSide":"bottom","toNode":"7_2","toSide":"top"},
+		{"id":"e_p7_73","fromNode":"phase7","fromSide":"bottom","toNode":"7_3","toSide":"top"},
+		{"id":"e_p7_74","fromNode":"phase7","fromSide":"bottom","toNode":"7_4","toSide":"top"},
+		{"id":"e_71_72","fromNode":"7_1","fromSide":"right","toNode":"7_2","toSide":"left"},
+		{"id":"e_72_73","fromNode":"7_2","fromSide":"right","toNode":"7_3","toSide":"left"},
+		{"id":"e_73_74","fromNode":"7_3","fromSide":"right","toNode":"7_4","toSide":"left"},
+		{"id":"e_p5_p7","fromNode":"5_3","fromSide":"right","toNode":"7_1","toSide":"left","label":"rightMode=codemap"},
+		{"id":"e_p3_p4","fromNode":"3_1","fromSide":"right","toNode":"4_3","toSide":"left","label":"schema"},
+		{"id":"e_p3_p6","fromNode":"3_3","fromSide":"right","toNode":"6_2","toSide":"left","label":"DepGraph"},
+		{"id":"e_12_32","fromNode":"1_2","fromSide":"bottom","toNode":"3_2","toSide":"top","label":"codemap schema"},
+		{"id":"e_13_61","fromNode":"1_3","fromSide":"bottom","toNode":"6_1","toSide":"top","label":"extract patterns"},
+		{"id":"e_ns_p8","fromNode":"north_star","fromSide":"right","toNode":"phase8","toSide":"left"},
+		{"id":"e_p8_81","fromNode":"phase8","fromSide":"bottom","toNode":"8_1","toSide":"top"},
+		{"id":"e_p8_82","fromNode":"phase8","fromSide":"bottom","toNode":"8_2","toSide":"top"},
+		{"id":"e_p8_83","fromNode":"phase8","fromSide":"bottom","toNode":"8_3","toSide":"top"},
+		{"id":"e_81_82","fromNode":"8_1","fromSide":"right","toNode":"8_2","toSide":"left"},
+		{"id":"e_82_83","fromNode":"8_2","fromSide":"right","toNode":"8_3","toSide":"left"},
+		{"id":"e_p7_p8","fromNode":"7_2","fromSide":"right","toNode":"8_1","toSide":"left","label":"enrich"},
+		{"id":"e_p8_p9","fromNode":"phase8","fromSide":"bottom","toNode":"phase9","toSide":"top"},
+		{"id":"e_p9_91","fromNode":"phase9","fromSide":"bottom","toNode":"9_1","toSide":"top"},
+		{"id":"e_p9_92","fromNode":"phase9","fromSide":"bottom","toNode":"9_2","toSide":"top"},
+		{"id":"e_p9_93","fromNode":"phase9","fromSide":"bottom","toNode":"9_3","toSide":"top"},
+		{"id":"e_p9_94","fromNode":"phase9","fromSide":"bottom","toNode":"9_4","toSide":"top"},
+		{"id":"e_p9_p10","fromNode":"phase9","fromSide":"bottom","toNode":"phase10","toSide":"top"},
+		{"id":"e_p10_101","fromNode":"phase10","fromSide":"bottom","toNode":"10_1","toSide":"top"},
+		{"id":"e_p10_102","fromNode":"phase10","fromSide":"bottom","toNode":"10_2","toSide":"top"},
+		{"id":"e_p10_103","fromNode":"phase10","fromSide":"bottom","toNode":"10_3","toSide":"top"},
+		{"id":"e_p10_104","fromNode":"phase10","fromSide":"bottom","toNode":"10_4","toSide":"top"},
+		{"id":"e_p10_rules","fromNode":"phase10","fromSide":"bottom","toNode":"agent_rules","toSide":"top"},
+		{"id":"e_rules_dod","fromNode":"agent_rules","fromSide":"right","toNode":"dod_global","toSide":"left"},
+		{"id":"e_dod_flow","fromNode":"dod_global","fromSide":"right","toNode":"flow","toSide":"left"},
+		{"id":"e_ns_layout","fromNode":"north_star","fromSide":"bottom","toNode":"layout_ui","toSide":"top","label":"split UX"},
+		{"id":"e_layout_p2","fromNode":"layout_ui","fromSide":"bottom","toNode":"phase2","toSide":"top","label":"2.3 shell"}
+	]
 }

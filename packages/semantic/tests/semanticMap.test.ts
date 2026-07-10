@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { contextPacker } from '../src/contextPacker';
@@ -102,6 +102,32 @@ describe('buildSemanticMap', () => {
 });
 
 describe('createProvider', () => {
+  const ENV_KEYS = [
+    'INFINITY_LLM_PROVIDER',
+    'INFINITY_LLM_BASE_URL',
+    'INFINITY_LLM_API_KEY',
+    'INFINITY_LLM_MODEL',
+    'OPENROUTER_BASE_URL',
+    'OPENROUTER_API_KEY',
+  ] as const;
+
+  let saved: Record<string, string | undefined>;
+
+  beforeEach(() => {
+    saved = {};
+    for (const k of ENV_KEYS) {
+      saved[k] = process.env[k];
+      delete process.env[k];
+    }
+  });
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+  });
+
   it('returns Mock when no config and no env', () => {
     const provider = createProvider();
     expect(provider.name).toBe('mock');
@@ -122,17 +148,20 @@ describe('createProvider', () => {
     expect(provider.name).toBe('openai-compatible');
   });
 
-  it('falls back to Mock when openai-compatible with no key', () => {
-    const prev = process.env.INFINITY_LLM_API_KEY;
-    delete process.env.INFINITY_LLM_API_KEY;
-    try {
-      const provider = createProvider({
-        provider: 'openai-compatible',
-      });
-      expect(provider.name).toBe('mock');
-    } finally {
-      if (prev) process.env.INFINITY_LLM_API_KEY = prev;
-    }
+  it('falls back to Mock when openai-compatible with no key and remote base', () => {
+    const provider = createProvider({
+      provider: 'openai-compatible',
+      baseUrl: 'https://api.openai.com/v1',
+    });
+    expect(provider.name).toBe('mock');
+  });
+
+  it('uses openai-compatible for localhost without key (dummy local)', () => {
+    const provider = createProvider({
+      provider: 'openai-compatible',
+      baseUrl: 'http://localhost:20128/v1',
+    });
+    expect(provider.name).toBe('openai-compatible');
   });
 });
 

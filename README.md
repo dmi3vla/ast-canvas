@@ -78,17 +78,23 @@ infinity-canvas/
 
 ## LLM Configuration
 
-Copy `.env.example` to `.env`:
+Copy `.env.example` to monorepo root `.env` (loaded by Electron main at startup):
 
 ```bash
-INFINITY_LLM_PROVIDER=openai-compatible  # or mock
-INFINITY_LLM_BASE_URL=http://localhost:20128/v1
-INFINITY_LLM_API_KEY=sk-...
-INFINITY_LLM_MODEL=kr/claude-haiku-4.5
-INFINITY_LLM_SEND_SAMPLES=0            # privacy: 0=safer, 1=full context
+cp .env.example .env
+# INFINITY_LLM_PROVIDER=openai-compatible
+# INFINITY_LLM_BASE_URL=http://localhost:20128/v1
+# INFINITY_LLM_API_KEY=local          # any non-empty for local proxies
+# INFINITY_LLM_MODEL=kr/claude-haiku-4.5
+# INFINITY_LLM_SEND_SAMPLES=0
 ```
 
-Without `.env`, Mock provider is used (no API needed).
+Without `.env` / key, Mock provider is used (no API needed). Localhost without key still uses the real provider (dummy Bearer `local`).
+
+```bash
+pnpm test:llm-curl     # curl models + chat + mini canvas JSON
+pnpm test:live-llm     # fixture → LLM → codemap → canvas
+```
 
 ## Packaging
 
@@ -117,7 +123,9 @@ Requires network once for Electron binary download. Output: `apps/desktop/dist/`
 | 9 — Perf (cull) + Minimap + Logs | ✅ |
 | 10 — Ship (packaging config + README) | ✅ config / pack verified |
 
-See [`docs/STATUS.md`](docs/STATUS.md) for detailed DoD per phase.
+See [`docs/STATUS.md`](docs/STATUS.md) for detailed DoD per phase.  
+**Manual smoke:** [`docs/VERIFY.md`](docs/VERIFY.md)  
+**Plan vs Result trees:** toolbar **Plan|Result** or `docs/plan_vs_result.canvas` (`plan_tree.canvas` / `result_tree.canvas` separately).
 
 **Residual (optional):** 9.5 UX polish · true e2e · ARCHITECTURE / USER_GUIDE docs · app icons.
 

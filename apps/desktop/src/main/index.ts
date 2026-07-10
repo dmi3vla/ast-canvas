@@ -17,13 +17,35 @@ import {
   contextPacker,
   createProvider,
   MockLLMProvider,
-  buildSemanticMap,
+  withPromptLogging,
   enrichCodemap,
   applyPrivacyToPack,
+  SYSTEM_CODEMAP,
+  EXAMPLE_CODEMAP_MINI,
+  buildCodemapUserPrompt,
+  projectCodemapToCanvas,
 } from '@infinity-canvas/semantic';
-import { serializeDocument } from '@infinity-canvas/schema';
+import type { ChatMessage } from '@infinity-canvas/semantic';
+import { serializeDocument, parseCodemap } from '@infinity-canvas/schema';
+import type { Codemap, DepGraph, CanvasDocument } from '@infinity-canvas/schema';
 import { SessionStore } from '@infinity-canvas/session';
 import { setLogWorkspace, logEvent, sanitizeForLog } from './logger';
+import { loadEnvFiles } from './loadEnv';
+
+// Load .env before any createProvider() reads process.env at runtime
+const envLoad = loadEnvFiles();
+if (envLoad.loaded.length) {
+  console.log('[env] loaded:', envLoad.loaded.map(p => p.split('/').slice(-2).join('/')).join(', '));
+  console.log(
+    '[env] LLM:',
+    process.env.INFINITY_LLM_PROVIDER || 'mock',
+    process.env.INFINITY_LLM_BASE_URL || '(default)',
+    process.env.INFINITY_LLM_MODEL || '(default)',
+    process.env.INFINITY_LLM_API_KEY ? 'key=set' : 'key=missing',
+  );
+} else {
+  console.log('[env] no .env file found — Mock LLM unless vars set in shell');
+}
 
 let mainWindow: BrowserWindow | null = null;
 let lastWorkspacePath: string | null = null;
@@ -266,56 +288,71 @@ ipcMain.handle('workspace:buildSemanticMap', async (_event, workspacePath: strin
     // 3b) Privacy
     applyPrivacyToPack(pack);
 
-    // 4) LLM provider from env/config (not always Mock)
-    const llm = options?.useMock
-      ? new MockLLMProvider()
-      : createProvider();
+    // 4) LLM — generate codemap (areas + fileAnchors), not raw canvas
+    const projectName = workspacePath.split('/').pop() || 'Project';
+    const userPrompt = buildCodemapUserPrompt(pack, projectName);
+    const messages: ChatMessage[] = [
+      { role: 'system', content: SYSTEM_CODEMAP + '\n\nHere is a valid example:\n' + EXAMPLE_CODEMAP_MINI },
+      { role: 'user', content: userPrompt },
+    ];
 
+    const llm = options?.useMock ? new MockLLMProvider() : createProvider();
     const providerName = llm.name;
-    console.log(`[semantic] Using provider: ${providerName}`);
 
-    const result = await buildSemanticMap(pack, llm);
+    let codemap: Codemap;
+    let document: CanvasDocument;
 
-    logEvent('INFO', 'semantic-map', `Built map with ${result.diagnostics.nodeCount} nodes`, {
-      provider: sanitizeForLog(providerName),
-      fileCount,
-      nodeCount: result.diagnostics.nodeCount,
-      warnings: result.diagnostics.warnings.length,
-    }).catch(() => {});
-
-    // Fallback to Mock on failure
-    if (result.diagnostics.warnings.length > 0 && providerName !== 'mock') {
-      console.warn(`[semantic] LLM failed, falling back to Mock. Warnings:`, result.diagnostics.warnings);
-      const mockResult = await buildSemanticMap(pack, new MockLLMProvider());
-
-      session.patch({ workspaceRoot: workspacePath, semanticMap: mockResult.document });
-      session.patchUI({ rightMode: 'empty', selectedNodeId: null });
-      await session.saveToWorkspace(workspacePath);
-
-      return {
-        json: JSON.stringify(serializeDocument(mockResult.document)),
-        fileCount,
-        fromCache: false,
-        nodeCount: mockResult.diagnostics.nodeCount,
-        provider: 'mock-fallback',
-      };
+    try {
+      const raw = await llm.complete(messages);
+      const stripped = raw.replace(/```(?:json)?\s*\n?/g, '').replace(/```\s*$/g, '').trim();
+      codemap = parseCodemap(stripped);
+    } catch (err) {
+      logEvent('WARN', 'semantic-map', `LLM parse failed, trying mock: ${err}`).catch(() => {});
+      try {
+        const mockRaw = await new MockLLMProvider().complete(messages);
+        codemap = parseCodemap(mockRaw.replace(/```(?:json)?\s*\n?/g, '').replace(/```\s*$/g, '').trim());
+      } catch {
+        codemap = {
+          schemaVersion: 1, id: `${projectName}___fallback`,
+          stableId: 'fallback',
+          metadata: { cascadeId: 'fallback', generationSource: 'fallback', generationTimestamp: new Date().toISOString(), mode: 'SMART', originalPrompt: 'fallback' },
+          title: projectName,
+          traces: pack.samples.slice(0, 5).map((s, i) => ({
+            id: String(i + 1), title: s.path.split('/').pop() || s.path, description: '',
+            locations: [{ id: `${i + 1}a`, path: s.path, lineNumber: 1 }],
+          })),
+        };
+      }
     }
 
-    // 5) Save to cache
-    session.patch({ workspaceRoot: workspacePath, semanticMap: result.document });
+    // 5) Build DepGraph for realistic edges and layout
+    let depGraph: DepGraph | null = null;
+    try {
+      depGraph = await depGraphService.getGraph(workspacePath);
+    } catch { /* DepGraph optional */ }
+
+    // 6) Project codemap → canvas with real import-derived edges
+    document = projectCodemapToCanvas(codemap!, depGraph);
+
+    logEvent('INFO', 'semantic-map', `Built map: ${document.nodes.length} nodes`, {
+      provider: sanitizeForLog(providerName),
+      traces: codemap!.traces.length,
+    }).catch(() => {});
+
+    // 7) Save to cache
+    session.patch({ workspaceRoot: workspacePath, semanticMap: document });
     session.patchUI({ rightMode: 'empty', selectedNodeId: null });
     await session.saveToWorkspace(workspacePath);
 
-    const serialized = serializeDocument(result.document);
-
     return {
-      json: JSON.stringify(serialized),
+      json: JSON.stringify(serializeDocument(document)),
       fileCount,
       fromCache: false,
-      nodeCount: result.diagnostics.nodeCount,
+      nodeCount: document.nodes.length,
       provider: providerName,
     };
   } catch (err) {
+    logEvent('ERROR', 'semantic-map', String(err)).catch(() => {});
     return { error: String(err) };
   }
 });
